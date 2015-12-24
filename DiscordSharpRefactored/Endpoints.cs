@@ -15,5 +15,8 @@ namespace DiscordSharpRefactored
         public static string Gateway = "/gateway";
         public static string Auth = "/auth";
         public static string Login = "/login";
+        public static string Channels = "/channels";
+        public static string Messages = "/messages";
+        public static string Users = "/users";
     }
 }

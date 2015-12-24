@@ -50,6 +50,7 @@
   <ItemGroup>
     <Compile Include="DiscordClient.cs" />
     <Compile Include="Models\DiscordChannel.cs" />
+    <Compile Include="Models\DiscordMessage.cs" />
     <Compile Include="Models\DiscordServer.cs" />
     <Compile Include="Models\DiscordUser.cs" />
     <Compile Include="Models\DiscordUserInformation.cs" />

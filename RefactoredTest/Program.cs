@@ -15,7 +15,7 @@ namespace RefactoredTest
             c.ClientPrivateInformation.email = "miketheripper1@msn.com";
             c.ClientPrivateInformation.password = "asdf12";
             c.Login();
-
+            while (true) ;
             Console.WriteLine("\n\nPress enter to continue..");
             Console.ReadLine();
         }
