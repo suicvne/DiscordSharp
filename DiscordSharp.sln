@@ -1,11 +1,15 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.23107.0
+VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiscordSharp", "DiscordSharp\DiscordSharp.csproj", "{A96FFE9E-3650-4976-872E-5BB336CC1589}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiscordSharpTestApplication", "DiscordSharpTestApplication\DiscordSharpTestApplication.csproj", "{02AA3864-7A3D-45E4-92DE-C6DAE8972ABF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiscordSharpRefactored", "DiscordSharpRefactored\DiscordSharpRefactored.csproj", "{282AE532-00FF-4E1B-AEB0-B6553C2EDA2C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RefactoredTest", "RefactoredTest\RefactoredTest.csproj", "{C27EB08A-BB7E-4245-9763-9E1101F9428F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +25,14 @@ Global
 		{02AA3864-7A3D-45E4-92DE-C6DAE8972ABF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{02AA3864-7A3D-45E4-92DE-C6DAE8972ABF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{02AA3864-7A3D-45E4-92DE-C6DAE8972ABF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{282AE532-00FF-4E1B-AEB0-B6553C2EDA2C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{282AE532-00FF-4E1B-AEB0-B6553C2EDA2C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{282AE532-00FF-4E1B-AEB0-B6553C2EDA2C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{282AE532-00FF-4E1B-AEB0-B6553C2EDA2C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C27EB08A-BB7E-4245-9763-9E1101F9428F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C27EB08A-BB7E-4245-9763-9E1101F9428F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C27EB08A-BB7E-4245-9763-9E1101F9428F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C27EB08A-BB7E-4245-9763-9E1101F9428F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
