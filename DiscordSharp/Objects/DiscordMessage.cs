@@ -30,10 +30,14 @@ namespace DiscordSharp
 
         public DiscordMember author { get; internal set; }
         internal DiscordChannelBase channel { get; set; }
+        public DiscordChannel Channel => ((DiscordChannel)channel);
         public Type TypeOfChannelObject { get; internal set; }
 
-        public dynamic Channel() =>
-            Convert.ChangeType(this, TypeOfChannelObject);
+        //public dynamic Channel() =>
+        //    Convert.ChangeType(this, TypeOfChannelObject);
+
+        
+        
 
         [JsonProperty("timestamp")]
         public DateTime timestamp { get; internal set; }

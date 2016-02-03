@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using DiscordSharp.Extensions;
 
 namespace DiscordSharp
 {
-    public struct LoggerMessageReceivedArgs
+    public class LoggerMessageReceivedArgs : EventArgs
     {
         public LogMessage message;
     }

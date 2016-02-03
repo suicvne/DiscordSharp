@@ -1,6 +1,8 @@
-﻿namespace DiscordSharp
+﻿using System;
+
+namespace DiscordSharp
 {
-    public class DiscordSocketOpenedEventArgs
+    public class DiscordSocketOpenedEventArgs : EventArgs
     {
     }
 }

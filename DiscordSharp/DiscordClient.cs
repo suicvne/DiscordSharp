@@ -10,6 +10,7 @@ using Newtonsoft.Json.Linq;
 using DiscordSharp.Events;
 using System.Text.RegularExpressions;
 using System.Drawing;
+using DiscordSharp.Extensions;
 
 namespace DiscordSharp
 {
@@ -94,7 +95,7 @@ namespace DiscordSharp
         #region Event declaration
         public event EventHandler<DiscordMessageEventArgs> MessageReceived;
         public event EventHandler<DiscordConnectEventArgs> Connected;
-        public event EventHandler<DiscordSocketOpenedEventArgs> SocketOpened;
+        public event EventHandler<EventArgs> SocketOpened;
         public event EventHandler<DiscordSocketClosedEventArgs> SocketClosed;
         public event EventHandler<DiscordChannelCreateEventArgs> ChannelCreated;
         public event EventHandler<DiscordPrivateChannelEventArgs> PrivateChannelCreated;
@@ -331,7 +332,7 @@ namespace DiscordSharp
             {
                 var uploadResult = JObject.Parse(WebWrapper.HttpUploadFile(url, token, pathToFile, "file", "image/jpeg", null));
 
-                if (!string.IsNullOrWhiteSpace(message))
+                if (!string.IsNullOrEmpty(message))
                     EditMessage(uploadResult["id"].ToString(), message, channel);
             }
             catch(Exception ex)
@@ -2304,59 +2305,60 @@ namespace DiscordSharp
             Dispose();
         }
 
-        public async Task<string> SendLoginRequestAsync()
-        {
-            if (ClientPrivateInformation == null || ClientPrivateInformation.email == null || ClientPrivateInformation.password == null)
-                throw new ArgumentNullException("You didn't supply login information!");
-            var httpWebRequest = (HttpWebRequest)WebRequest.Create("https://discordapp.com/api/auth/login");
-            httpWebRequest.ContentType = "application/json";
-            httpWebRequest.Method = "POST";
-            httpWebRequest.Timeout = 20000;
+        //[Obsolete]
+        //public async Task<string> SendLoginRequestAsync()
+        //{
+        //    if (ClientPrivateInformation == null || ClientPrivateInformation.email == null || ClientPrivateInformation.password == null)
+        //        throw new ArgumentNullException("You didn't supply login information!");
+        //    var httpWebRequest = (HttpWebRequest)WebRequest.Create("https://discordapp.com/api/auth/login");
+        //    httpWebRequest.ContentType = "application/json";
+        //    httpWebRequest.Method = "POST";
+        //    httpWebRequest.Timeout = 20000;
 
-            using (var sw = new StreamWriter(httpWebRequest.GetRequestStream()))
-            {
-                string msg = JsonConvert.SerializeObject(new
-                {
-                    email = ClientPrivateInformation.email,
-                    password = ClientPrivateInformation.password
-                });
-                await sw.WriteAsync(msg).ConfigureAwait(false);
-                sw.Flush();
-                sw.Close();
-            }
-            try
-            {
-                var httpResponseT = await httpWebRequest.GetResponseAsync().ConfigureAwait(false);
-                var httpResponse = (HttpWebResponse)httpResponseT;
-                using (var sr = new StreamReader(httpResponse.GetResponseStream()))
-                {
-                    var result = await sr.ReadToEndAsync().ConfigureAwait(false);
-                    var jsonResult = JObject.Parse(result);
+        //    using (var sw = new StreamWriter(httpWebRequest.GetRequestStream()))
+        //    {
+        //        string msg = JsonConvert.SerializeObject(new
+        //        {
+        //            email = ClientPrivateInformation.email,
+        //            password = ClientPrivateInformation.password
+        //        });
+        //        await sw.WriteAsync(msg);
+        //        sw.Flush();
+        //        sw.Close();
+        //    }
+        //    try
+        //    {
+        //        var httpResponseT = await httpWebRequest.GetResponseAsync().ConfigureAwait(false);
+        //        var httpResponse = (HttpWebResponse)httpResponseT;
+        //        using (var sr = new StreamReader(httpResponse.GetResponseStream()))
+        //        {
+        //            var result = await sr.ReadToEndAsync().ConfigureAwait(false);
+        //            var jsonResult = JObject.Parse(result);
 
-                    if(!jsonResult["token"].IsNullOrEmpty() || jsonResult["token"].ToString() != "")
-                    {
-                        token = jsonResult["token"].ToString();
-                    }
-                    else
-                        return null;
-                }
-            }
-            catch (WebException e)
-            {
-                using (StreamReader s = new StreamReader(e.Response.GetResponseStream()))
-                {
-                    string result = await s.ReadToEndAsync().ConfigureAwait(false);
-                    var jsonResult = JObject.Parse(result);
+        //            if(!jsonResult["token"].IsNullOrEmpty() || jsonResult["token"].ToString() != "")
+        //            {
+        //                token = jsonResult["token"].ToString();
+        //            }
+        //            else
+        //                return null;
+        //        }
+        //    }
+        //    catch (WebException e)
+        //    {
+        //        using (StreamReader s = new StreamReader(e.Response.GetResponseStream()))
+        //        {
+        //            string result = await s.ReadToEndAsync().ConfigureAwait(false);
+        //            var jsonResult = JObject.Parse(result);
 
-                    if (!jsonResult["password"].IsNullOrEmpty())
-                        throw new DiscordLoginException((jsonResult["password"].ToObject<JArray>()[0].ToString()));
-                    if(!jsonResult["email"].IsNullOrEmpty())
-                        throw new DiscordLoginException((jsonResult["email"].ToObject<JArray>()[0].ToString()));
-                }
-            }
+        //            if (!jsonResult["password"].IsNullOrEmpty())
+        //                throw new DiscordLoginException((jsonResult["password"].ToObject<JArray>()[0].ToString()));
+        //            if(!jsonResult["email"].IsNullOrEmpty())
+        //                throw new DiscordLoginException((jsonResult["email"].ToObject<JArray>()[0].ToString()));
+        //        }
+        //    }
 
-            return "";
-        }
+        //    return "";
+        //}
 
         /// <summary>
         /// Sends a login request.

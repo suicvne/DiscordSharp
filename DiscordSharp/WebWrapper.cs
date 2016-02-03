@@ -7,6 +7,8 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using DiscordSharp.Extensions;
+using System.Threading;
 
 namespace DiscordSharp
 {
@@ -43,7 +45,7 @@ namespace DiscordSharp
                         {
                             if (!jsonTest["bucket"].IsNullOrEmpty()) //you got rate limited punk
                             {
-                                Task.Delay(jsonTest["retry_after"].ToObject<int>()).Wait(); //wait
+                                Thread.Sleep(jsonTest["retry_after"].ToObject<int>()); //wait
                                 Delete(url, token); //try again
                             }
                         }
@@ -62,6 +64,7 @@ namespace DiscordSharp
             }
             return "";
         }
+        
 
         /// <summary>
         /// Sends a PUT HTTP request to the specified URL using the specified token.
@@ -91,7 +94,7 @@ namespace DiscordSharp
                             {
                                 if (!jsonTest["bucket"].IsNullOrEmpty()) //you got rate limited punk
                                 {
-                                    Task.Delay(jsonTest["retry_after"].ToObject<int>()).Wait(); //wait
+                                    Thread.Sleep(jsonTest["retry_after"].ToObject<int>()); //wait
                                     Put(url, token); //try again
                                 }
                             }
@@ -157,7 +160,7 @@ namespace DiscordSharp
                         {
                             if (!jsonTest["bucket"].IsNullOrEmpty()) //you got rate limited punk
                             {
-                                Task.Delay(jsonTest["retry_after"].ToObject<int>()).Wait(); //wait
+                                Thread.Sleep(jsonTest["retry_after"].ToObject<int>()); //wait
                                 Post(url, token, message, acceptInviteWorkaround); //try again
                             }
                         }
@@ -263,7 +266,7 @@ namespace DiscordSharp
                         {
                             if (!jsonTest["bucket"].IsNullOrEmpty()) //you got rate limited punk
                             {
-                                Task.Delay(jsonTest["retry_after"].ToObject<int>()).Wait(); //wait
+                                Thread.Sleep(jsonTest["retry_after"].ToObject<int>()); //wait
                                 Post(url, message); //try again
                             }
                         }
@@ -324,7 +327,7 @@ namespace DiscordSharp
                         {
                             if (!jsonTest["bucket"].IsNullOrEmpty()) //you got rate limited punk
                             {
-                                Task.Delay(jsonTest["retry_after"].ToObject<int>()).Wait(); //wait
+                                Thread.Sleep(jsonTest["retry_after"].ToObject<int>()); //wait
                                 PostWithAttachment(url, message, fileToAttach); //try again
                             }
                         }
@@ -378,7 +381,7 @@ namespace DiscordSharp
                         {
                             if (!jsonTest["bucket"].IsNullOrEmpty()) //you got rate limited punk
                             {
-                                Task.Delay(jsonTest["retry_after"].ToObject<int>() + 2).Wait(); //wait with a 2ms buffer...JUST IN CASE
+                                Thread.Sleep(jsonTest["retry_after"].ToObject<int>() + 2); //wait with a 2ms buffer...JUST IN CASE
                                 Patch(url, token, message); //try again
                             }
                         }
@@ -425,7 +428,7 @@ namespace DiscordSharp
                         {
                             if (!jsonTest["bucket"].IsNullOrEmpty()) //you got rate limited punk
                             {
-                                Task.Delay(jsonTest["retry_after"].ToObject<int>()).Wait(); //wait
+                                Thread.Sleep(jsonTest["retry_after"].ToObject<int>()); //wait
                                 Get(url, token); //try again
                             }
                         }

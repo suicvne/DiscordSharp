@@ -1,5 +1,4 @@
 ﻿using DiscordSharp.Events;
-using NAudio.Wave;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -31,7 +30,7 @@ namespace DiscordSharp
         public int port;
     }
 
-    public class DiscordAudioPacketEventArgs
+    public class DiscordAudioPacketEventArgs : EventArgs
     {
         public DiscordAudioPacket Packet { get; internal set; }
         public DiscordChannel Channel { get; internal set; }
@@ -64,6 +63,8 @@ namespace DiscordSharp
         private CancellationTokenSource udpReceiveSource = new CancellationTokenSource();
         private CancellationTokenSource udpKeepAliveSource = new CancellationTokenSource();
 
+        private IPEndPoint udpEndpoint;
+
         #region Events
         public event EventHandler<LoggerMessageReceivedArgs> DebugMessageReceived;
         public event EventHandler<EventArgs> Disposed;
@@ -91,11 +92,11 @@ namespace DiscordSharp
             VoiceWebSocket.Closed += VoiceWebSocket_OnClose;
             VoiceWebSocket.Error += VoiceWebSocket_OnError;
 
-            VoiceWebSocket.MessageReceived += async (s, e) =>
+            VoiceWebSocket.MessageReceived += (s, e) =>
             {
                 try
                 {
-                    await VoiceWebSocket_OnMessage(s, e).ConfigureAwait(false);
+                    VoiceWebSocket_OnMessage(s, e).Wait();
                 }
                 catch(Exception ex)
                 {
@@ -131,9 +132,9 @@ namespace DiscordSharp
             {
                 case 2:
                     VoiceDebugLogger.Log(e.Message);
-                    await OpCode2(message).ConfigureAwait(false); //do opcode 2 events
+                    OpCode2(message).Wait(); //do opcode 2 events
                     //ok, now that we have opcode 2 we have to send a packet and configure the UDP
-                    await InitialUDPConnection().ConfigureAwait(false);
+                    InitialUDPConnection().Wait();
                     break;
                 case 3:
                     VoiceDebugLogger.Log("KeepAlive echoed back successfully!", MessageLevel.Unecessary);
@@ -141,12 +142,12 @@ namespace DiscordSharp
                 case 4:
                     VoiceDebugLogger.Log(e.Message);
                     //post initializing the UDP client, we will receive opcode 4 and will now do the final things
-                    await OpCode4(message).ConfigureAwait(false);
-                    udpKeepAliveTask = Task.Factory.StartNew(async () =>
+                    OpCode4(message).Wait();
+                    udpKeepAliveTask = Task.Factory.StartNew(() =>
                     {
-                        await DoUDPKeepAlive().ConfigureAwait(false);
+                        DoUDPKeepAlive().Wait();
                     }, udpKeepAliveSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
-                    udpReceiveTask = Task.Factory.StartNew(async () => 
+                    udpReceiveTask = Task.Factory.StartNew(() => 
                     {
                         try
                         {
@@ -158,8 +159,8 @@ namespace DiscordSharp
                                 {
                                     byte[] packet = new byte[1920];
                                     VoiceDebugLogger.Log("Received packet!! Length: " + _udp.Available, MessageLevel.Unecessary);
-                                    UdpReceiveResult d = await _udp.ReceiveAsync().ConfigureAwait(false);
-                                    packet = d.Buffer;
+                                    byte[] udpReceiveResult = _udp.Receive(ref udpEndpoint);
+                                    packet = udpReceiveResult;
 
                                     DiscordAudioPacketEventArgs ae = new DiscordAudioPacketEventArgs();
                                     ae.FromUser = LastSpoken;
@@ -197,7 +198,7 @@ namespace DiscordSharp
 
         public async Task EchoPacket(DiscordAudioPacket packet)
         {
-            await SendPacket(DiscordAudioPacket.EchoPacket(packet.AsRawPacket(), Params.ssrc));
+            SendPacket(DiscordAudioPacket.EchoPacket(packet.AsRawPacket(), Params.ssrc)).Wait();
         }
 
         private async Task DoUDPKeepAlive()
@@ -216,7 +217,7 @@ namespace DiscordSharp
                             bw.Write(0xC9);
                             bw.Write((long)seq);
 
-                            await _udp.SendAsync(ms.ToArray(), ms.ToArray().Length);
+                            _udp.Send(ms.ToArray(), ms.ToArray().Length);
                             VoiceDebugLogger.Log("Sent UDP Keepalive");
                             Thread.Sleep(5 * 1000); //5 seconds
                         }
@@ -237,7 +238,7 @@ namespace DiscordSharp
         {
             if(_udp != null && VoiceWebSocket.State == WebSocketState.Open)
             {
-                await _udp.SendAsync(packet.AsRawPacket(), packet.AsRawPacket().Length);
+                _udp.Send(packet.AsRawPacket(), packet.AsRawPacket().Length);
                 VoiceDebugLogger.Log("Sent packet through SendPacket task.", MessageLevel.Unecessary);
             }
         }
@@ -251,21 +252,23 @@ namespace DiscordSharp
 
                 VoiceDebugLogger.Log($"Initialized UDP Client at {VoiceEndpoint.Replace(":80", "")}:{Params.port}");
 
+                udpEndpoint = new IPEndPoint(IPAddress.Parse(VoiceEndpoint.Replace(":80", "")), 80); //what a mess
+
                 byte[] packet = new byte[70]; //the initial packet
                 packet[0] = (byte)((Params.ssrc >> 24) & 0xFF);
                 packet[1] = (byte)((Params.ssrc >> 16) & 0xFF);
                 packet[2] = (byte)((Params.ssrc >> 8) & 0xFF);
                 packet[3] = (byte)((Params.ssrc >> 0) & 0xFF);
 
-                await _udp.SendAsync(packet, packet.Length).ConfigureAwait(false); //sends this initial packet.
+                _udp.Send(packet, packet.Length); //sends this initial packet.
                 VoiceDebugLogger.Log("Sent ssrc packet.");
 
-                UdpReceiveResult resultingMessage = await _udp.ReceiveAsync().ConfigureAwait(false); //receive a response packet
+                byte[] resultingMessage = _udp.Receive(ref udpEndpoint); //receive a response packet
 
-                if (resultingMessage != null || resultingMessage.Buffer.Length > 0)
+                if (resultingMessage != null || resultingMessage.Length > 0)
                 {
                     VoiceDebugLogger.Log("Received IP packet, reading..");
-                    await SendIPOverUDP(GetIPAndPortFromPacket(resultingMessage.Buffer)).ConfigureAwait(false);
+                    SendIPOverUDP(GetIPAndPortFromPacket(resultingMessage)).Wait();
                 }
                 else
                     VoiceDebugLogger.Log("No IP packet received.", MessageLevel.Critical);
@@ -298,7 +301,7 @@ namespace DiscordSharp
                 }
             });
             VoiceDebugLogger.Log("Sending our IP over WebSocket ( " + msg.ToString() + " ) ");
-            await Task.Run(()=>VoiceWebSocket.Send(msg)); //idk lets try it
+            VoiceWebSocket.Send(msg);
         }
 
         private DiscordIpPort GetIPAndPortFromPacket(byte[] packet)
@@ -369,7 +372,7 @@ namespace DiscordSharp
             Params = JsonConvert.DeserializeObject<VoiceConnectionParameters>(message["d"].ToString());
             //await SendWebSocketKeepalive().ConfigureAwait(false); //sends an initial keepalive right away.
             SendWebSocketKeepalive();
-            voiceSocketKeepAlive = Task.Run(() =>
+            voiceSocketKeepAlive = new Task(() =>
             {
                 ///TODO: clean this up
                 while (VoiceWebSocket != null && VoiceWebSocket.State == WebSocketState.Open)
@@ -387,6 +390,7 @@ namespace DiscordSharp
                     {}
                 }
             }, voiceSocketTaskSource.Token);
+            voiceSocketKeepAlive.Start();
         }
 
         private void VoiceWebSocket_OnError(object sender, EventArgs e)
