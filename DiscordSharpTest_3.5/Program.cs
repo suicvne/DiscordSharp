@@ -34,7 +34,7 @@ namespace DiscordSharpTest_3._5
         {
             client.MessageReceived += (sender, e) =>
             {
-                Console.WriteLine($"[{e.Channel.parent.name}->{e.Channel.name}] <{e.author.Username}> {e.message}");
+                Console.WriteLine($"[{e.Channel.parent.name}->{e.Channel.name}] <{e.author.Username}> {e.message.content}");
                 if(e.author.Username == "Axiom") //that me
                 {
                     if(e.message.content.StartsWith("?testjoinvoice"))
@@ -105,6 +105,9 @@ namespace DiscordSharpTest_3._5
             }
 
             client.Run();
+            Console.ReadLine();
+            client.Dispose();
+            Console.WriteLine("\n\nDisposed.");
             Console.ReadLine();
         }
     }

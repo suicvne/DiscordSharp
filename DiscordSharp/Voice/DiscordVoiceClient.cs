@@ -7,7 +7,6 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
-using System.Threading.Tasks;
 using WebSocket4Net;
 
 namespace DiscordSharp
@@ -58,10 +57,10 @@ namespace DiscordSharp
 
         public Logger GetDebugLogger => VoiceDebugLogger;
 
-        private Task voiceSocketKeepAlive, udpReceiveTask, udpKeepAliveTask;
-        private CancellationTokenSource voiceSocketTaskSource = new CancellationTokenSource();
-        private CancellationTokenSource udpReceiveSource = new CancellationTokenSource();
-        private CancellationTokenSource udpKeepAliveSource = new CancellationTokenSource();
+        private Thread voiceSocketKeepAlive, udpReceiveTask, udpKeepAliveTask;
+        //private CancellationTokenSource voiceSocketTaskSource = new CancellationTokenSource();
+        //private CancellationTokenSource udpReceiveSource = new CancellationTokenSource();
+        //private CancellationTokenSource udpKeepAliveSource = new CancellationTokenSource();
 
         private IPEndPoint udpEndpoint;
 
@@ -96,7 +95,7 @@ namespace DiscordSharp
             {
                 try
                 {
-                    VoiceWebSocket_OnMessage(s, e).Wait();
+                    VoiceWebSocket_OnMessage(s, e);
                 }
                 catch(Exception ex)
                 {
@@ -125,16 +124,16 @@ namespace DiscordSharp
             VoiceWebSocket.Open();
         }
 
-        private async Task VoiceWebSocket_OnMessage(object sender, MessageReceivedEventArgs e)
+        private void VoiceWebSocket_OnMessage(object sender, MessageReceivedEventArgs e)
         {
             JObject message = JObject.Parse(e.Message);
             switch(message["op"].Value<int>())
             {
                 case 2:
                     VoiceDebugLogger.Log(e.Message);
-                    OpCode2(message).Wait(); //do opcode 2 events
+                    OpCode2(message); //do opcode 2 events
                     //ok, now that we have opcode 2 we have to send a packet and configure the UDP
-                    InitialUDPConnection().Wait();
+                    InitialUDPConnection();
                     break;
                 case 3:
                     VoiceDebugLogger.Log("KeepAlive echoed back successfully!", MessageLevel.Unecessary);
@@ -142,19 +141,21 @@ namespace DiscordSharp
                 case 4:
                     VoiceDebugLogger.Log(e.Message);
                     //post initializing the UDP client, we will receive opcode 4 and will now do the final things
-                    OpCode4(message).Wait();
-                    udpKeepAliveTask = Task.Factory.StartNew(() =>
+                    OpCode4(message);
+                    udpKeepAliveTask = new Thread(() =>
                     {
-                        DoUDPKeepAlive().Wait();
-                    }, udpKeepAliveSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
-                    udpReceiveTask = Task.Factory.StartNew(() => 
+                        DoUDPKeepAlive();
+                    });
+                    udpKeepAliveTask.Start();
+
+                    udpReceiveTask = new Thread(() => 
                     {
                         try
                         {
                             while (true)
                             {
-                                if (udpReceiveSource.IsCancellationRequested)
-                                    udpReceiveSource.Token.ThrowIfCancellationRequested();
+                                //if (udpReceiveSource.IsCancellationRequested)
+                                //    udpReceiveSource.Token.ThrowIfCancellationRequested();
                                 if (_udp.Available > 0)
                                 {
                                     byte[] packet = new byte[1920];
@@ -186,7 +187,8 @@ namespace DiscordSharp
                             VoiceDebugLogger.Log($"Error in udpReceiveTask\n\t{ex.Message}\n\t{ex.StackTrace}",
                                 MessageLevel.Critical);
                         }
-                    }, udpReceiveSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+                    });
+                    udpReceiveTask.Start();
                     SendSpeaking(true);
                     break;
                 case 5:
@@ -196,20 +198,20 @@ namespace DiscordSharp
             }
         }
 
-        public async Task EchoPacket(DiscordAudioPacket packet)
+        public void EchoPacket(DiscordAudioPacket packet)
         {
-            SendPacket(DiscordAudioPacket.EchoPacket(packet.AsRawPacket(), Params.ssrc)).Wait();
+            SendPacket(DiscordAudioPacket.EchoPacket(packet.AsRawPacket(), Params.ssrc));
         }
 
-        private async Task DoUDPKeepAlive()
+        private void DoUDPKeepAlive()
         {
             try
             {
                 long seq = 0;
                 while (VoiceWebSocket.State == WebSocketState.Open)
                 {
-                    if (udpKeepAliveSource.IsCancellationRequested)
-                        udpKeepAliveSource.Token.ThrowIfCancellationRequested();
+                    //if (udpKeepAliveSource.IsCancellationRequested)
+                    //    udpKeepAliveSource.Token.ThrowIfCancellationRequested();
                     using (MemoryStream ms = new MemoryStream())
                     {
                         using (BinaryWriter bw = new BinaryWriter(ms))
@@ -234,7 +236,7 @@ namespace DiscordSharp
             }
         }
 
-        public async Task SendPacket(DiscordAudioPacket packet)
+        public void SendPacket(DiscordAudioPacket packet)
         {
             if(_udp != null && VoiceWebSocket.State == WebSocketState.Open)
             {
@@ -243,7 +245,7 @@ namespace DiscordSharp
             }
         }
 
-        private async Task InitialUDPConnection()
+        private void InitialUDPConnection()
         {
             try
             {
@@ -268,7 +270,7 @@ namespace DiscordSharp
                 if (resultingMessage != null || resultingMessage.Length > 0)
                 {
                     VoiceDebugLogger.Log("Received IP packet, reading..");
-                    SendIPOverUDP(GetIPAndPortFromPacket(resultingMessage)).Wait();
+                    SendIPOverUDP(GetIPAndPortFromPacket(resultingMessage));
                 }
                 else
                     VoiceDebugLogger.Log("No IP packet received.", MessageLevel.Critical);
@@ -284,7 +286,7 @@ namespace DiscordSharp
         /// </summary>
         /// <param name="buffer">The byte[] returned after sending your ssrc.</param>
         /// <returns></returns>
-        private async Task SendIPOverUDP(DiscordIpPort ipPort)
+        private void SendIPOverUDP(DiscordIpPort ipPort)
         {
             string msg = JsonConvert.SerializeObject(new
             {
@@ -350,7 +352,7 @@ namespace DiscordSharp
                 UserSpeaking(this, e);
         }
 
-        private async Task OpCode4(JObject message)
+        private void OpCode4(JObject message)
         {
             string speakingJson = JsonConvert.SerializeObject(new
             {
@@ -367,12 +369,12 @@ namespace DiscordSharp
             Connected = true;
         }
 
-        private async Task OpCode2(JObject message)
+        private void OpCode2(JObject message)
         {
             Params = JsonConvert.DeserializeObject<VoiceConnectionParameters>(message["d"].ToString());
             //await SendWebSocketKeepalive().ConfigureAwait(false); //sends an initial keepalive right away.
             SendWebSocketKeepalive();
-            voiceSocketKeepAlive = new Task(() =>
+            voiceSocketKeepAlive = new Thread(() =>
             {
                 ///TODO: clean this up
                 while (VoiceWebSocket != null && VoiceWebSocket.State == WebSocketState.Open)
@@ -380,16 +382,17 @@ namespace DiscordSharp
                     try
                     {
                         SendWebSocketKeepalive();
-                        if (voiceSocketTaskSource.Token.IsCancellationRequested)
-                            voiceSocketTaskSource.Token.ThrowIfCancellationRequested();
+                        //if (voiceSocketTaskSource.Token.IsCancellationRequested)
+                        //    voiceSocketTaskSource.Token.ThrowIfCancellationRequested();
                         Thread.Sleep(Params.heartbeat_interval);
                     }
                     catch(ObjectDisposedException)
                     {}
-                    catch(OperationCanceledException ex)
+                    catch(OperationCanceledException)
                     {}
                 }
-            }, voiceSocketTaskSource.Token);
+            });
+            voiceSocketKeepAlive.Start();
             voiceSocketKeepAlive.Start();
         }
 
@@ -469,13 +472,13 @@ namespace DiscordSharp
             VoiceWebSocket.Error -= VoiceWebSocket_OnError;
             VoiceWebSocket.Close();
             VoiceWebSocket = null;
-            voiceSocketTaskSource.Cancel(); //cancels the task
-            udpReceiveSource.Cancel();
-            udpKeepAliveSource.Cancel();
+            //voiceSocketTaskSource.Abort(); //cancels the task
+            //udpReceiveSource.Cancel();
+            //udpKeepAliveSource.Cancel();
 
-            voiceSocketTaskSource.Dispose();
-            udpReceiveSource.Dispose();
-            udpKeepAliveSource.Cancel();
+            voiceSocketKeepAlive.Abort();
+            udpReceiveTask.Abort();
+            udpKeepAliveTask.Abort();
             _udp.Close();
             _udp = null;
 

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Threading.Tasks;
 using Newtonsoft.Json;
 using System.Net;
 using System.IO;
@@ -50,6 +49,8 @@ namespace DiscordSharp
 
     public class DiscordClient
     {
+        System.Runtime.CompilerServices.ExtensionAttribute x = null;
+
         public static string token { get; internal set; }
 
         [Obsolete]
@@ -69,9 +70,10 @@ namespace DiscordSharp
         public Logger GetTextClientLogger => DebugLogger;
         public Logger GetLastVoiceClientLogger;
 
-        private CancellationTokenSource KeepAliveTaskTokenSource = new CancellationTokenSource();
-        private CancellationToken KeepAliveTaskToken;
-        private Task KeepAliveTask;
+        //private CancellationTokenSource KeepAliveTaskTokenSource = new CancellationTokenSource();
+        //private CancellationToken KeepAliveTaskToken;
+        //private Task KeepAliveTask;
+        private Thread KeepAliveTask;
 
         /// <summary>
         /// Testing.
@@ -1413,18 +1415,16 @@ namespace DiscordSharp
                     if (SocketOpened != null)
                         SocketOpened(this, null);
 
-                    KeepAliveTaskToken = KeepAliveTaskTokenSource.Token;
-                    KeepAliveTask = new Task(() => 
+                    //KeepAliveTaskToken = KeepAliveTaskTokenSource.Token;
+                    KeepAliveTask = new Thread(() => 
                     {
                         while (ws.IsAlive)
                         {
                             DebugLogger.Log("Hello from inside KeepAliveTask! Sending..");
                             KeepAlive();
                             Thread.Sleep(HeartbeatInterval);
-                            if (KeepAliveTaskToken.IsCancellationRequested)
-                                KeepAliveTaskToken.ThrowIfCancellationRequested();
                         }
-                    }, KeepAliveTaskToken, TaskCreationOptions.LongRunning);
+                    });
                     KeepAliveTask.Start();
                     DebugLogger.Log("Began keepalive task..");
                 };
@@ -1487,7 +1487,7 @@ namespace DiscordSharp
             }
         }
 
-        private async void VoiceServerUpdateEvents(JObject message)
+        private void VoiceServerUpdateEvents(JObject message)
         {
             VoiceClient.VoiceEndpoint = message["d"]["endpoint"].ToString();
             VoiceClient.Token = message["d"]["token"].ToString();
@@ -1617,7 +1617,7 @@ namespace DiscordSharp
         public void EchoPacket(DiscordAudioPacket packet)
         {
             if(VoiceClient != null && ConnectedToVoice())
-                VoiceClient.EchoPacket(packet).Wait();
+                VoiceClient.EchoPacket(packet);
         }
 
         public void ConnectToVoiceChannel(DiscordChannel channel, bool clientMuted = false, bool clientDeaf = false)
@@ -2285,7 +2285,8 @@ namespace DiscordSharp
         {
             try
             {
-                KeepAliveTaskTokenSource.Cancel();
+                //KeepAliveTaskTokenSource.Cancel();
+                KeepAliveTask.Abort();
                 ws.Close();
                 ws = null;
                 ServersList = null;
