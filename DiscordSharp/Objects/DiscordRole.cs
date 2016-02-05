@@ -4,7 +4,7 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 
-namespace DiscordSharp
+namespace DiscordSharp.Objects
 {
     public class DiscordRole
     {

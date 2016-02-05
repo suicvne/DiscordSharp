@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using DiscordSharp.Extensions;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -6,7 +7,6 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
-using DiscordSharp.Extensions;
 using System.Threading;
 
 namespace DiscordSharp
@@ -63,7 +63,6 @@ namespace DiscordSharp
             }
             return "";
         }
-        
 
         /// <summary>
         /// Sends a PUT HTTP request to the specified URL using the specified token.
@@ -124,7 +123,7 @@ namespace DiscordSharp
         {
             var httpRequest = (HttpWebRequest)WebRequest.Create(url);
             httpRequest.Headers["authorization"] = token;
-            if(acceptInviteWorkaround)
+            if (acceptInviteWorkaround)
                 httpRequest.ContentLength = message.Length;
             httpRequest.ContentType = "application/json";
             httpRequest.Method = "POST";
@@ -229,6 +228,57 @@ namespace DiscordSharp
             reader2.Close();
             stream2.Close();
             fileStream.Close();
+            return returnVal;
+        }
+
+        public static string HttpUploadFile(string url, string token, Stream file, string paramName, string contentType, NameValueCollection nvc)
+        {
+            string boundary = "---------------------------" + DateTime.Now.Ticks.ToString("x");
+            byte[] boundarybytes = System.Text.Encoding.ASCII.GetBytes("\r\n--" + boundary + "\r\n");
+
+            HttpWebRequest wr = (HttpWebRequest)WebRequest.Create(url);
+            wr.Headers["authorization"] = token;
+            wr.ContentType = "multipart/form-data; boundary=" + boundary;
+            wr.Method = "POST";
+            wr.UserAgent += UserAgentString;
+            wr.KeepAlive = true;
+            wr.Credentials = System.Net.CredentialCache.DefaultCredentials;
+
+            Stream rs = wr.GetRequestStream();
+
+            string formdataTemplate = "Content-Disposition: form-data; name=\"{0}\"\r\n\r\n{1}";
+
+            if (nvc != null)
+            {
+                foreach (string key in nvc.Keys)
+                {
+                    rs.Write(boundarybytes, 0, boundarybytes.Length);
+                    string formitem = string.Format(formdataTemplate, key, nvc[key]);
+                    byte[] formitembytes = System.Text.Encoding.UTF8.GetBytes(formitem);
+                    rs.Write(formitembytes, 0, formitembytes.Length);
+                }
+            }
+            rs.Write(boundarybytes, 0, boundarybytes.Length);
+
+            string headerTemplate = "Content-Disposition: form-data; name=\"{0}\"; filename=\"{1}\"\r\nContent-Type: {2}\r\n\r\n";
+            string header = string.Format(headerTemplate, paramName, file, contentType);
+            byte[] headerbytes = System.Text.Encoding.UTF8.GetBytes(header);
+            rs.Write(headerbytes, 0, headerbytes.Length);
+
+            file.CopyTo(rs);
+
+            byte[] trailer = System.Text.Encoding.ASCII.GetBytes("\r\n--" + boundary + "--\r\n");
+            rs.Write(trailer, 0, trailer.Length);
+            rs.Close();
+
+            WebResponse wresp = null;
+            wresp = wr.GetResponse();
+            Stream stream2 = wresp.GetResponseStream();
+            StreamReader reader2 = new StreamReader(stream2);
+            string returnVal = reader2.ReadToEnd();
+
+            reader2.Close();
+            stream2.Close();
             return returnVal;
         }
 

@@ -1,4 +1,5 @@
 ﻿using DiscordSharp;
+using DiscordSharp.Objects;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -34,7 +35,7 @@ namespace DiscordSharpTest_3._5
         {
             client.MessageReceived += (sender, e) =>
             {
-                Console.WriteLine($"[{e.Channel.parent.name}->{e.Channel.name}] <{e.author.Username}> {e.message.content}");
+                Console.WriteLine($"[{e.Channel.parent.name}->{e.Channel.Name}] <{e.author.Username}> {e.message.content}");
                 if(e.author.Username == "Axiom") //that me
                 {
                     if(e.message.content.StartsWith("?testjoinvoice"))
@@ -42,7 +43,7 @@ namespace DiscordSharpTest_3._5
                         string[] split = e.message.content.Split(new char[] { ' ' }, 2);
                         if(split.Length > 1)
                         {
-                            DiscordChannel potentialChannel = e.Channel.parent.channels.Find(x => x.name.ToLower() == split[1].ToLower() && x.type == "voice");
+                            DiscordChannel potentialChannel = e.Channel.parent.channels.Find(x => x.Name.ToLower() == split[1].ToLower() && x.Type == ChannelType.Voice);
                             if(potentialChannel != null)
                             {
                                 client.ConnectToVoiceChannel(potentialChannel, true, true);

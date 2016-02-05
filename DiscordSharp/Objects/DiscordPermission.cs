@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace DiscordSharp
+namespace DiscordSharp.Objects
 {
     public enum DiscordSpecialPermissions : byte
     {

@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using DiscordSharp.Objects;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -7,6 +8,22 @@ using System.Text;
 
 namespace DiscordSharp
 {
+    public struct DiscordAttachment
+    {
+        [JsonProperty("width")]
+        public int Width { get; internal set; }
+        [JsonProperty("height")]
+        public int Height { get; internal set; }
+        [JsonProperty("size")]
+        public int Size { get; internal set; }
+        [JsonProperty("filename")]
+        public string Filename { get; internal set; }
+        [JsonProperty("proxy_url")]
+        public string ProxyURL { get; internal set; }
+        [JsonProperty("url")]
+        public string URL { get; internal set; }
+    }
+
     /// <summary>
     /// Message to be sent
     /// </summary>
@@ -21,7 +38,7 @@ namespace DiscordSharp
         public string[] mentions { get; internal set; }
 
         [JsonProperty("attachments")]
-        public string[] attachments { get; internal set; }
+        public DiscordAttachment[] attachments { get; internal set; }
 
 
         //public string recipient_id { get; set; }
@@ -29,14 +46,9 @@ namespace DiscordSharp
 
         public DiscordMember author { get; internal set; }
         internal DiscordChannelBase channel { get; set; }
-        public DiscordChannel Channel => ((DiscordChannel)channel);
         public Type TypeOfChannelObject { get; internal set; }
 
-        //public dynamic Channel() =>
-        //    Convert.ChangeType(this, TypeOfChannelObject);
-
-        
-        
+        public DiscordChannel Channel() => ((DiscordChannel)channel);
 
         [JsonProperty("timestamp")]
         public DateTime timestamp { get; internal set; }

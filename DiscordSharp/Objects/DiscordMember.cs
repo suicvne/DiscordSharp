@@ -8,8 +8,12 @@ using System.Linq;
 using System.Net;
 using System.Text;
 
-namespace DiscordSharp
+namespace DiscordSharp.Objects
 {
+    public enum Status
+    {
+        Online, Idle, Offline
+    }
     public class DiscordMember
     {
         [JsonProperty("username")]
@@ -23,6 +27,9 @@ namespace DiscordSharp
         [JsonProperty("verified")]
         public bool Verified { get; internal set; }
 
+        public Status Status { get; internal set; } = Status.Offline;
+        public string CurrentGame { get; internal set; } = null;
+
         /**
         Voice only
         */
@@ -30,6 +37,17 @@ namespace DiscordSharp
         public bool Muted { get; internal set; } = false;
         [JsonProperty("deaf")]
         public bool Deaf { get; internal set; } = false;
+
+        internal void SetPresence(string status)
+        {
+            string checkAgainst = status.ToLower().Trim();
+            if (checkAgainst == "online")
+                Status = Status.Online;
+            else if (checkAgainst == "idle")
+                Status = Status.Offline;
+            else
+                Status = Status.Offline;
+        }
 
 
         /// <summary>
@@ -46,7 +64,7 @@ namespace DiscordSharp
         /// </summary>
         public DiscordServer Parent { get; internal set; }
         internal DiscordClient parentclient { get; set; }
-        
+
         internal DiscordMember(DiscordClient parent)
         {
             Roles = new List<DiscordRole>();
@@ -85,7 +103,7 @@ namespace DiscordSharp
         /// </summary>
         public void Kick()
         {
-            if(parentclient.Me.ID == this.ID)
+            if (parentclient.Me.ID == this.ID)
                 throw new InvalidOperationException("Can't kick self!");
             string url = Endpoints.BaseAPI + Endpoints.Guilds + $"/{Parent.id}" + Endpoints.Members + $"/{ID}";
             try
