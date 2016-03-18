@@ -2811,11 +2811,14 @@ namespace DiscordSharp
                     string read = "";
                     using (var sr = new StreamReader(StrippedEmail.GetHashCode() + ".cache"))
                     {
-                        read = sr.ReadLine();
-                        if (!read.StartsWith("#")) //comment
+                        while (token == null && !sr.EndOfStream)
                         {
-                            token = sr.ReadLine();
-                            DebugLogger.Log("Loading token from cache.");
+                            read = sr.ReadLine();
+                            if (!read.StartsWith("#")) //comment
+                            {
+                                token = read;
+                                DebugLogger.Log("Loading token from cache.");
+                            }
                         }
                     }
                 }
