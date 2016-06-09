@@ -354,5 +354,14 @@ namespace DiscordSharp.Objects
         {
             return (DiscordServer)this.MemberwiseClone();
         }
+
+        public void ChangeMemberNickname(DiscordMember member, string newNickname) {
+            if (Unavailable)
+                throw new Exception("Server is currently unavailable!");
+
+            string url = Endpoints.BaseAPI + Endpoints.Guilds + $"/{this.ID}" + Endpoints.Members + $"/{member.ID}";
+            string message = JsonConvert.SerializeObject(new { nick = newNickname });
+            Console.WriteLine(WebWrapper.Patch(url, DiscordClient.token, message));
+        }
     }
 }
