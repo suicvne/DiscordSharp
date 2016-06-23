@@ -253,6 +253,7 @@ namespace DiscordSharp
         /// For use when connected to voice only.
         /// </summary>
         public event EventHandler<DiscordLeftVoiceChannelEventArgs> UserLeftVoiceChannel;
+        public event EventHandler<DiscordVoiceStateUpdateEventArgs> UserJoinedVoiceChannel;
         /// <summary>
         /// Occurs when the voice client is fully connected to voice.
         /// </summary>
@@ -3090,10 +3091,12 @@ namespace DiscordSharp
                 MessageDeleted(this, e);
         }
 
-        private void VoiceStateUpdateEvents(JObject message)
-        {
+        private void VoiceStateUpdateEvents(JObject message) {
+            DiscordVoiceStateUpdateEventArgs e = new DiscordVoiceStateUpdateEventArgs();
+            e.Guild = ServersList.Find(x => x.ID == message["d"]["guild_id"].ToString());
+            DiscordMember memberToUpdate = e.Guild.GetMemberByKey(message["d"]["user_id"].ToString());
             var f = message["d"]["channel_id"];
-            if (f.ToString() == null)
+            if (String.IsNullOrEmpty(f.ToString()))
             {
                 DiscordLeftVoiceChannelEventArgs le = new DiscordLeftVoiceChannelEventArgs();
                 DiscordServer inServer = ServersList.Find(x => x.ID == message["d"]["guild_id"].ToString());
@@ -3105,15 +3108,13 @@ namespace DiscordSharp
                     VoiceClient.MemberRemoved(le.User);
                 if (UserLeftVoiceChannel != null)
                     UserLeftVoiceChannel(this, le);
+                memberToUpdate.CurrentVoiceChannel = e.Channel;
                 return;
             }
-            DiscordVoiceStateUpdateEventArgs e = new DiscordVoiceStateUpdateEventArgs();
-            e.Guild = ServersList.Find(x => x.ID == message["d"]["guild_id"].ToString());
-            DiscordMember memberToUpdate = e.Guild.GetMemberByKey(message["d"]["user_id"].ToString());
             if (memberToUpdate != null)
             {
                 e.Channel = e.Guild.Channels.Find(x => x.ID == message["d"]["channel_id"].ToString());
-                memberToUpdate.CurrentVoiceChannel = e.Channel;
+
                 if (!message["d"]["self_deaf"].IsNullOrEmpty())
                     e.SelfDeaf = message["d"]["self_deaf"].ToObject<bool>();
                 e.Deaf = message["d"]["deaf"].ToObject<bool>();
@@ -3126,6 +3127,14 @@ namespace DiscordSharp
                 e.RawJson = message;
 
                 e.User = memberToUpdate;
+
+                if (memberToUpdate.CurrentVoiceChannel != e.Channel) {
+                    if (memberToUpdate.ID != Me.ID) {
+                        UserJoinedVoiceChannel?.Invoke(this, e);
+                    }
+                }
+
+                memberToUpdate.CurrentVoiceChannel = e.Channel;
 
                 if (VoiceClient != null && VoiceClient.Connected)
                     VoiceClient.MemberAdded(e.User);
