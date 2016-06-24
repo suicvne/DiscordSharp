@@ -1829,11 +1829,9 @@ namespace DiscordSharp
         /// <summary>
         /// Runs the websocket connection for the client hooking up the appropriate events.
         /// </summary>
-        public void Connect()
-        {
+        public void Connect() {
             CurrentGatewayURL = GetGatewayUrl();
-            if (string.IsNullOrEmpty(CurrentGatewayURL))
-            {
+            if (string.IsNullOrEmpty(CurrentGatewayURL)) {
                 DebugLogger.Log("Gateway URL was null or empty?!", MessageLevel.Critical);
                 return;
             }
@@ -1841,13 +1839,7 @@ namespace DiscordSharp
             
             ws = new WebSocketSharpSocket(CurrentGatewayURL);
             DebugLogger.Log("Using WebSocketSharp websocket..");
-            //catch (PlatformNotSupportedException) //Win7 doesn't support this.
-            //{
-            //    ws = new NetWebSocket(CurrentGatewayURL);
-            //    DebugLogger.Log("Using .Net's built in WebSocket..");
-            //}
-            ws.MessageReceived += (sender, e) =>
-            {
+            ws.MessageReceived += (sender, e) => {
                 var message = JObject.Parse(e.Message);
 
                 if (EnableVerboseLogging)
@@ -1863,13 +1855,11 @@ namespace DiscordSharp
                     Sequence = message["s"].ToObject<int>();
 
             };
-            ws.SocketOpened += (sender, e) =>
-            {
+            ws.SocketOpened += (sender, e) => {
                 SendIdentifyPacket();
                 SocketOpened?.Invoke(this, null);
             };
-            ws.SocketClosed += (sender, e) =>
-            {
+            ws.SocketClosed += (sender, e) => {
                 DiscordSocketClosedEventArgs scev = new DiscordSocketClosedEventArgs();
                 scev.Code = e.Code;
                 scev.Reason = e.Reason;
