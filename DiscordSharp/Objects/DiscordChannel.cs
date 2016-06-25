@@ -130,14 +130,5 @@ namespace DiscordSharp.Objects
         internal DiscordPrivateChannel() { }
     }
 
-    //kinda like the author
-    [Obsolete]
-    public class DiscordRecipient
-    {
-        public string username { get; set; }
-        public string id { get; set; }
-        internal DiscordRecipient() { }
-    }
-
     
 }
