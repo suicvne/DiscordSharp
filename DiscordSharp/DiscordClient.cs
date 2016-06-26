@@ -1829,9 +1829,11 @@ namespace DiscordSharp
         /// <summary>
         /// Runs the websocket connection for the client hooking up the appropriate events.
         /// </summary>
-        public void Connect() {
+        public void Connect()
+        {
             CurrentGatewayURL = GetGatewayUrl();
-            if (string.IsNullOrEmpty(CurrentGatewayURL)) {
+            if (string.IsNullOrEmpty(CurrentGatewayURL))
+            {
                 DebugLogger.Log("Gateway URL was null or empty?!", MessageLevel.Critical);
                 return;
             }
@@ -1839,7 +1841,8 @@ namespace DiscordSharp
             
             ws = new WebSocketSharpSocket(CurrentGatewayURL);
             DebugLogger.Log("Using WebSocketSharp websocket..");
-            ws.MessageReceived += (sender, e) => {
+            ws.MessageReceived += (sender, e) =>
+            {
                 var message = JObject.Parse(e.Message);
 
                 if (EnableVerboseLogging)
@@ -1855,11 +1858,13 @@ namespace DiscordSharp
                     Sequence = message["s"].ToObject<int>();
 
             };
-            ws.SocketOpened += (sender, e) => {
+            ws.SocketOpened += (sender, e) =>
+            {
                 SendIdentifyPacket();
                 SocketOpened?.Invoke(this, null);
             };
-            ws.SocketClosed += (sender, e) => {
+            ws.SocketClosed += (sender, e) =>
+            {
                 DiscordSocketClosedEventArgs scev = new DiscordSocketClosedEventArgs();
                 scev.Code = e.Code;
                 scev.Reason = e.Reason;
@@ -3085,12 +3090,13 @@ namespace DiscordSharp
                 MessageDeleted(this, e);
         }
 
-        private void VoiceStateUpdateEvents(JObject message) {
+        private void VoiceStateUpdateEvents(JObject message)
+        {
             DiscordVoiceStateUpdateEventArgs e = new DiscordVoiceStateUpdateEventArgs();
             e.Guild = ServersList.Find(x => x.ID == message["d"]["guild_id"].ToString());
             DiscordMember memberToUpdate = e.Guild.GetMemberByKey(message["d"]["user_id"].ToString());
             var f = message["d"]["channel_id"];
-            if (String.IsNullOrEmpty(f.ToString()))
+            if (f.ToString().IsNullOrEmpty())
             {
                 DiscordLeftVoiceChannelEventArgs le = new DiscordLeftVoiceChannelEventArgs();
                 DiscordServer inServer = ServersList.Find(x => x.ID == message["d"]["guild_id"].ToString());
