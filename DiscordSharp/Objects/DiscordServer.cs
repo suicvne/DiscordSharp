@@ -54,7 +54,17 @@ namespace DiscordSharp.Objects
 
         [JsonProperty("channels")]
         public List<DiscordChannel> Channels { get; internal set; }
+        
+        [JsonProperty("afk_channel_id")]
+        internal ID AFKChannelID {
+            get { return AFKChannel?.ID; }
+            set {
+                AFKChannel = Channels.Find(x => x.ID == value);
+            }
+        }
 
+        public DiscordChannel AFKChannel { get; private set; }
+        
         [JsonProperty("members")]
         private List<DiscordMember> membersAsList
         {

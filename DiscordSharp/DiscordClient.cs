@@ -2900,6 +2900,10 @@ namespace DiscordSharp
                 }
                 server.Channels.Add(tempChannel);
             }
+
+            // Must set this after setting the Channels
+            server.AFKChannelID = message["d"]["afk_channel_id"].ToString();
+
             foreach (var mbr in message["d"]["members"])
             {
                 DiscordMember member = JsonConvert.DeserializeObject<DiscordMember>(mbr["user"].ToString());

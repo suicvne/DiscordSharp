@@ -46,6 +46,8 @@ namespace DiscordSharp.Objects
     {
         [JsonProperty("type")]
         public ChannelType Type { get; set; }
+        
+        public bool IsAFKChannel { get { return Parent.AFKChannelID == ID; } }
 
         [JsonProperty("name")]
         public string Name { get; set; }
