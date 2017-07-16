@@ -1,0 +1,35 @@
+To use this you need visual studio 2017 and when you have it you need the packages it uses so when you have this opened...
+1. click tools then click NuGet package manager
+2. click on Manage NuGet packages for solution...
+3. go to browse type Discord.net click on only 1 of the which is discord.net the other appropriate ones will be installed automatically
+4. make sure you installed the latest version when you install it (at the moment its 1.0.1) and if you already have it!
+thats how to make it not error when you run it
+now here how to add it to your server
+1. go to this webpage and make sure your logged in with your discord account on the discordapp.com go to this webpage https://discordapp.com/developers/applications/me/
+2. click New app
+3. give it a name and press done
+4. scroll down to create a bot user and click it
+5. now go back into the code and in the file Program.cs (located in the folder DiscordSharpTestApplication) and before where all the comamnds are registered copy this code:
+            discord.ExecuteAndWait(async () =>
+            {
+                await discord.Connect("put your token here", TokenType.Bot); 
+            });
+6. to find your token go back onto the webpage where your bot is
+7. under APP BOT USER press on the expand token or something (DONT PRESS GENERATE A NEW TOKEN OR YOUR BOT WILL BREAK)
+8. copy the token and put it where it says put your token here in the code remember to keep the speech marks!
+now to add it to your server do this
+9. paste this link in the same browser you have the bot open not the same tab open a new tab and do it
+https://discordapp.com/oauth2/authorize?&client_id=YOUR_CLIENT_ID_HERE&scope=bot
+to find the client id do this
+10. go to the top of the page where your bot is dont use the client secret use the all number code where it says CLIENT ID copy that into the link where it says YOUR_CLIENT_ID_HERE keep the rest of the url though
+11. press enter and then make sure to add it to your server that you want it on
+now to run it
+12. if theres errors research it because im not sure either but if theres not press start and wait for the cmd window to come up dont do anything untill then
+when the cmd window says
+Connected
+GUILD_AVAILABLE: (your server name)
+the bot is online!
+
+your welcome
+
+-Ramstarhamstar
