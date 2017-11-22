@@ -108,6 +108,7 @@
     <Compile Include="Events\DiscordVoiceUserSpeaking.cs" />
     <Compile Include="Objects\DiscordVoiceState.cs" />
     <Compile Include="Objects\DiscordServer.cs" />
+    <Compile Include="Objects\MessageAttachment.cs" />
     <Compile Include="Objects\RateLimitException.cs" />
     <Compile Include="Opcodes.cs" />
     <Compile Include="Sockets\BuiltIn\NetWebSocketWrapper.cs" />
