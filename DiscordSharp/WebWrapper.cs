@@ -9,6 +9,7 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using DiscordSharp.Discord;
 
 namespace DiscordSharp
 {
@@ -17,7 +18,7 @@ namespace DiscordSharp
     /// </summary>
     internal class WebWrapper
     {
-        static string UserAgentString = $"DiscordBot (http://github.com/Luigifan/DiscordSharp, {typeof(DiscordClient).Assembly.GetName().Version.ToString()})";
+        private static string UserAgentString = $"DiscordBot (http://github.com/Luigifan/DiscordSharp, {typeof(DiscordClient).Assembly.GetName().Version.ToString()})";
 
         /// <summary>
         /// Sends a DELETE HTTP request to the specified URL using the specified token.
@@ -141,7 +142,7 @@ namespace DiscordSharp
             try
             {
                 var httpResponse = (HttpWebResponse)httpRequest.GetResponse();
-                if(httpResponse.StatusCode == HttpStatusCode.Unauthorized)
+                if (httpResponse.StatusCode == HttpStatusCode.Unauthorized)
                 {
                     throw new UnauthorizedAccessException("401");
                 }
@@ -325,6 +326,7 @@ namespace DiscordSharp
             }
             return "";
         }
+
         [Obsolete]
         public static string PostWithAttachment(string url, string message, string fileToAttach)
         {
@@ -456,7 +458,7 @@ namespace DiscordSharp
             try
             {
                 var httpResponse = (HttpWebResponse)httpRequest.GetResponse();
-                if(httpResponse.StatusCode == HttpStatusCode.Unauthorized)
+                if (httpResponse.StatusCode == HttpStatusCode.Unauthorized)
                 {
                     throw new UnauthorizedAccessException("401");
                 }
@@ -476,11 +478,10 @@ namespace DiscordSharp
                                 }
                             }
                         }
-                        catch(Exception ) //must be a jarray
+                        catch (Exception) //must be a jarray
                         {
                             return result;
                         }
-                        
                     }
                     return result;
                 }
@@ -494,6 +495,5 @@ namespace DiscordSharp
                 }
             }
         }
-
     }
 }

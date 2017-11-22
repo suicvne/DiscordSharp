@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using DiscordSharp.Discord;
 
 namespace Luigibot.Modules
 {
@@ -108,7 +109,6 @@ end";
                                 else
                                     e.Channel.SendMessage("Errors!");
                             }
-
                         });
                         evalTask.Start();
                         evalTask.Wait(10 * 1000);

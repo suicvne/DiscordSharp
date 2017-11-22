@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using DiscordSharp.Discord;
 using ID = System.String;
 
 namespace DiscordSharp.Objects
@@ -15,6 +16,7 @@ namespace DiscordSharp.Objects
 
         [JsonProperty("id")]
         public ID ID { get; internal set; }
+
         [JsonProperty("name")]
         public string Name { get; internal set; }
 
@@ -29,6 +31,7 @@ namespace DiscordSharp.Objects
 
         [JsonProperty("icon")]
         internal string icon { get; set; }
+
         public string IconURL
         {
             get
@@ -41,6 +44,7 @@ namespace DiscordSharp.Objects
 
 #pragma warning disable 0612
         private DiscordMember _owner;
+
         [JsonProperty("owner")]
         public DiscordMember Owner
         {
@@ -50,6 +54,7 @@ namespace DiscordSharp.Objects
                 _owner = value;
             }
         }
+
 #pragma warning restore 0612
 
         [JsonProperty("channels")]
@@ -79,12 +84,11 @@ namespace DiscordSharp.Objects
             Members = new Dictionary<ID, DiscordMember>();
         }
 
-        
         internal void AddMember(DiscordMember member)
         {
             if (member == null)
                 return;
-            if(Members.ContainsKey(member.ID)) //then replace
+            if (Members.ContainsKey(member.ID)) //then replace
             {
                 Members.Remove(member.ID);
             }
@@ -94,21 +98,23 @@ namespace DiscordSharp.Objects
         internal int ClearOfflineMembers()
         {
             int count = 0;
-            foreach(var member in Members)
+            foreach (var member in Members)
             {
                 if (member.Value.Status == Status.Offline)
                     return count;
             }
             return count;
         }
+
         internal bool RemoveMember(ID key)
         {
-            if(Members.ContainsKey(key))
+            if (Members.ContainsKey(key))
             {
                 Members.Remove(key);
             }
             return false;
         }
+
         public DiscordMember GetMemberByKey(ID key)
         {
             if (Unavailable)
@@ -123,6 +129,7 @@ namespace DiscordSharp.Objects
                 return null; //because instead of just returning null by default, it has to do this shit.
             }
         }
+
         public DiscordMember GetMemberByUsername(string username, bool caseSensitive = false)
         {
             if (Unavailable)
@@ -168,6 +175,7 @@ namespace DiscordSharp.Objects
             string message = JsonConvert.SerializeObject(new { roles = new string[] { role.ID } });
             Console.WriteLine(WebWrapper.Patch(url, DiscordClient.token, message));
         }
+
         public void AssignRoleToMember(List<DiscordRole> roles, DiscordMember member)
         {
             if (Unavailable)
@@ -273,7 +281,8 @@ namespace DiscordSharp.Objects
             var result = JObject.Parse(WebWrapper.Post(url, DiscordClient.token, reqJson));
             if (result != null)
             {
-                DiscordChannel dc = new DiscordChannel {
+                DiscordChannel dc = new DiscordChannel
+                {
                     Name = result["name"].ToString(),
                     ID = result["id"].ToString(),
                     Type = result["type"].ToObject<ChannelType>(),
@@ -347,6 +356,7 @@ namespace DiscordSharp.Objects
                 parentclient.GetTextClientLogger.Log($"Error during RemoveBan\n\tMessage: {ex.Message}\n\tStack: {ex.StackTrace}", MessageLevel.Error);
             }
         }
+
         public void RemoveBan(DiscordMember member)
         {
             if (Unavailable)

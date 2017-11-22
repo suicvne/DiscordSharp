@@ -3,6 +3,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using DiscordSharp.Discord;
 
 namespace DiscordSharp.Objects
 {
@@ -10,12 +11,15 @@ namespace DiscordSharp.Objects
     {
         [JsonProperty("id")]
         public string ID { get; internal set; }
+
         [JsonProperty("is_private")]
         public bool Private { get; internal set; }
 
         internal DiscordClient Client { get; set; }
 
-        internal DiscordChannelBase() { }
+        internal DiscordChannelBase()
+        {
+        }
 
         /// <summary>
         /// Simulates typing in the specified channel. Automatically times out/stops after either:
@@ -116,7 +120,9 @@ namespace DiscordSharp.Objects
             return channel;
         }
 
-        internal DiscordChannel() { }
+        internal DiscordChannel()
+        {
+        }
     }
 
     public class DiscordPrivateChannel : DiscordChannelBase
@@ -124,10 +130,13 @@ namespace DiscordSharp.Objects
         internal string user_id { get; set; }
 
         public DiscordMember Recipient { get; set; }
+
         [JsonProperty("last_message_id")]
         private string LastMessageID { get; set; }
 
-        internal DiscordPrivateChannel() { }
+        internal DiscordPrivateChannel()
+        {
+        }
     }
 
     //kinda like the author
@@ -136,8 +145,9 @@ namespace DiscordSharp.Objects
     {
         public string username { get; set; }
         public string id { get; set; }
-        internal DiscordRecipient() { }
-    }
 
-    
+        internal DiscordRecipient()
+        {
+        }
+    }
 }

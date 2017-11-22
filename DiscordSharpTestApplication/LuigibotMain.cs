@@ -17,6 +17,7 @@ using System.Threading.Tasks;
 using YugiohPrices;
 using Luigibot.Modules;
 using System.Linq;
+using DiscordSharp.Discord;
 
 namespace Luigibot
 {
@@ -49,28 +50,34 @@ namespace Luigibot
         private CommandsManager CommandsManager;
         private CancellationToken cancelToken;
         private DateTime loginDate = DateTime.Now;
+
         #region Audio playback
+
         WaveFormat waveFormat;
         BufferedWaveProvider bufferedWaveProvider;
         WaveCallbackInfo waveCallbackInfo;
         IWavePlayer outputDevice;
         VolumeWaveProvider16 volumeProvider;
         System.Timers.Timer stutterReducingTimer;
-        #endregion
+
+        #endregion Audio playback
+
         private bool runningOnMono = false;
         private const int voiceMsBuffer = 20;
         private string osString;
         public bool actuallyExit = false;
-		
+
         string[] NaughtyWords = new string[]
         {
             "bitch", "fucking", "fuck", "cunt", "shit", "reest", "reested", "asswipe"
         };
 
         #region Initial Run
+
         bool doingInitialRun = false;
         string codeToEnter = "";
-#endregion
+
+        #endregion Initial Run
 
         public LuigibotMain()
         {
@@ -86,9 +93,9 @@ namespace Luigibot
             if (config.CommandPrefix.ToString().Length == 0)
                 config.CommandPrefix = '?';
 
-			runningOnMono = Type.GetType ("Mono.Runtime") != null;
-            
-			osString = OSDetermination.GetUnixName();
+            runningOnMono = Type.GetType("Mono.Runtime") != null;
+
+            osString = OSDetermination.GetUnixName();
         }
 
         public void RunLuigibot()
@@ -98,7 +105,7 @@ namespace Luigibot
             Console.Title = "Luigibot - Discord";
             DoLogin();
         }
-        
+
         private void WriteError(string text)
         {
             Console.ForegroundColor = ConsoleColor.Red;
@@ -165,7 +172,6 @@ namespace Luigibot
                         }
                     }
 
-
                     if (e.Author == null)
                     {
                         string msg = $"Author had null id in message received!\nRaw JSON:\n```\n{e.RawJson}\n```\n";
@@ -211,7 +217,7 @@ namespace Luigibot
                                 {
                                     e.Channel.SendMessage(ex.Message);
                                 }
-                                catch(ModuleNotEnabledException x)
+                                catch (ModuleNotEnabledException x)
                                 {
                                     e.Channel.SendMessage($"{x.Message}");
                                 }
@@ -243,13 +249,13 @@ namespace Luigibot
                         //    }
                         //}
 
-                        if(e.Channel.ID == "91265608326324224") //discord-sharp on discordapi
+                        if (e.Channel.ID == "91265608326324224") //discord-sharp on discordapi
                         {
-                            if(e.Author != owner)
+                            if (e.Author != owner)
                             {
-                                if(e.Message.Content != null && e.Message.Content.ToLower().Contains("how"))
+                                if (e.Message.Content != null && e.Message.Content.ToLower().Contains("how"))
                                 {
-                                    if(e.Message.Content.ToLower().Contains("bot") && e.Message.Content.ToLower().Contains("tag"))
+                                    if (e.Message.Content.ToLower().Contains("bot") && e.Message.Content.ToLower().Contains("tag"))
                                     {
                                         e.Channel.SendMessage($"<#124294271900712960>");//#api-changes
                                     }
@@ -260,7 +266,7 @@ namespace Luigibot
                 };
                 client.VoiceClientDebugMessageReceived += (sender, e) =>
                 {
-                    if(e.message.Level != MessageLevel.Unecessary)
+                    if (e.message.Level != MessageLevel.Unecessary)
                         Console.WriteLine($"[{e.message.Level} {e.message.TimeStamp.ToString()}] {e.message.Message}");
                 };
                 client.VoiceClientConnected += (sender, e) =>
@@ -283,7 +289,7 @@ namespace Luigibot
                 };
                 client.AudioPacketReceived += (sender, e) =>
                 {
-                    if(bufferedWaveProvider != null)
+                    if (bufferedWaveProvider != null)
                     {
                         byte[] potential = new byte[4000];
                         int decodedFrames = client.GetVoiceClient().Decoder.DecodeFrame(e.OpusAudio, 0, e.OpusAudioLength, potential);
@@ -292,7 +298,7 @@ namespace Luigibot
                 };
                 client.GuildCreated += (sender, e) =>
                 {
-                    if(owner == null)
+                    if (owner == null)
                         owner = client.GetServersList().Find(x => x.GetMemberByKey(config.OwnerID) != null).GetMemberByKey(config.OwnerID);
                     Console.WriteLine($"Joined server {e.Server.Name} ({e.Server.ID})");
                     try
@@ -308,12 +314,12 @@ namespace Luigibot
                 client.SocketClosed += (sender, e) =>
                 {
                     Console.Title = "Luigibot - Discord - Socket Closed..";
-                    if(!actuallyExit)
-                    { 
+                    if (!actuallyExit)
+                    {
                         WriteError($"\n\nSocket Closed Unexpectedly! Code: {e.Code}. Reason: {e.Reason}. Clear: {e.WasClean}.\n\n");
                         Console.WriteLine("Waiting 6 seconds to reconnect..");
                         Thread.Sleep(6 * 1000);
-						LetsGoAgain();
+                        LetsGoAgain();
                     }
                     else
                     {
@@ -328,7 +334,7 @@ namespace Luigibot
                     message += $"```\n{e.RawJson.ToString()}\n```\nIt's been dumped to `dumps/{e.RawJson["t"].ToString()}.json` for your viewing pleasure.";
 
                     string filename = $"{Environment.CurrentDirectory}{Path.DirectorySeparatorChar}dumps{Path.DirectorySeparatorChar}{e.RawJson["t"].ToString()}.json";
-                    if(!File.Exists(filename))
+                    if (!File.Exists(filename))
                     {
                         File.WriteAllText(e.RawJson.ToString(), filename);
                         try
@@ -352,12 +358,12 @@ namespace Luigibot
                     if (e.message.Level == MessageLevel.Warning)
                         WriteWarning($"(Logger Warning) {e.message.Message}");
                 };
-                client.Connected += (sender, e) => 
+                client.Connected += (sender, e) =>
                 {
                     Console.Title = "Luigibot - Discord - Logged in as " + e.User.Username;
                     Console.WriteLine("Connected as " + e.User.Username);
                     if (!String.IsNullOrEmpty(config.OwnerID))
-                    {                    }
+                    { }
                     else
                     {
                         doingInitialRun = true;
@@ -376,21 +382,21 @@ namespace Luigibot
                         var permissionsDictionary = JsonConvert.DeserializeObject<Dictionary<string, PermissionType>>(File.ReadAllText("permissions.json"));
                         if (permissionsDictionary == null)
                             permissionsDictionary = new Dictionary<string, PermissionType>();
-						if(permissionsDictionary.Count == 0 && owner != null)
-							permissionsDictionary.Add(owner.ID, PermissionType.Owner);
-								
+                        if (permissionsDictionary.Count == 0 && owner != null)
+                            permissionsDictionary.Add(owner.ID, PermissionType.Owner);
+
                         CommandsManager.OverridePermissionsDictionary(permissionsDictionary);
                     }
                     SetupCommands();
 
-                    if(config.ModulesDictionary != null)
+                    if (config.ModulesDictionary != null)
                     {
                         CommandsManager.OverrideModulesDictionary(config.ModulesDictionary);
                     }
 
                     //client.UpdateCurrentGame($"DiscordSharp {typeof(DiscordClient).Assembly.GetName().Version.ToString()}");
                 };
-                if(client.SendLoginRequest() != null)
+                if (client.SendLoginRequest() != null)
                 {
                     client.Connect(UseBuiltInWebsocket);
                 }
@@ -398,33 +404,33 @@ namespace Luigibot
         }
 
         //yes, this is a bullet for my valentine reference
-		private void LetsGoAgain()
-		{
-			client.Dispose ();
-			client = null;
+        private void LetsGoAgain()
+        {
+            client.Dispose();
+            client = null;
 
-			string botToken = File.ReadAllText("bot_token_important.txt");
-			client = new DiscordClient(botToken, true);
-			client.RequestAllUsersOnStartup = true;
-            
-			client.ClientPrivateInformation.Email = config.BotEmail;
-			client.ClientPrivateInformation.Password = config.BotPass;
+            string botToken = File.ReadAllText("bot_token_important.txt");
+            client = new DiscordClient(botToken, true);
+            client.RequestAllUsersOnStartup = true;
 
-			SetupEvents(cancelToken);
-		}
+            client.ClientPrivateInformation.Email = config.BotEmail;
+            client.ClientPrivateInformation.Password = config.BotPass;
+
+            SetupEvents(cancelToken);
+        }
 
         private void StutterReducingTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
-            if(outputDevice.PlaybackState != PlaybackState.Stopped)
+            if (outputDevice.PlaybackState != PlaybackState.Stopped)
             {
-                if(bufferedWaveProvider != null)
+                if (bufferedWaveProvider != null)
                 {
                     var bufferedSeconds = bufferedWaveProvider.BufferedDuration.TotalSeconds;
-                    if(bufferedSeconds < 0.5 && outputDevice.PlaybackState == PlaybackState.Playing)
+                    if (bufferedSeconds < 0.5 && outputDevice.PlaybackState == PlaybackState.Playing)
                     {
                         outputDevice.Pause();
                     }
-                    else if(bufferedSeconds > 4 && outputDevice.PlaybackState == PlaybackState.Paused)
+                    else if (bufferedSeconds > 4 && outputDevice.PlaybackState == PlaybackState.Paused)
                     {
                         outputDevice.Play();
                     }
@@ -436,8 +442,8 @@ namespace Luigibot
         {
             config.ModulesDictionary = CommandsManager.ModuleDictionaryForJson();
             File.WriteAllText("settings.json", JsonConvert.SerializeObject(config));
-			if(CommandsManager.UserRoles != null && CommandsManager.UserRoles.Count > 0)
-            	File.WriteAllText("permissions.json", JsonConvert.SerializeObject(CommandsManager.UserRoles));
+            if (CommandsManager.UserRoles != null && CommandsManager.UserRoles.Count > 0)
+                File.WriteAllText("permissions.json", JsonConvert.SerializeObject(CommandsManager.UserRoles));
 
             client.Logout();
             client.Dispose();
@@ -448,6 +454,7 @@ namespace Luigibot
         private void SetupCommands()
         {
             #region Old Commands
+
             CommandsManager.AddCommand(new CommandStub("invite", "Makes an invite to specified server given its ID", "Pass ID douchebag.", PermissionType.Owner, 1, cmdArgs =>
             {
                 if (cmdArgs.Args.Count > 0)
@@ -466,11 +473,11 @@ namespace Luigibot
                     cmdArgs.Channel.SendMessage("kek");
                 }
             }));
-            
-            CommandsManager.AddCommand(new CommandStub("statusof", "`Status` test", "", PermissionType.Owner, 1, cmdArgs=>
+
+            CommandsManager.AddCommand(new CommandStub("statusof", "`Status` test", "", PermissionType.Owner, 1, cmdArgs =>
             {
                 string id = cmdArgs.Args[0].Trim(new char[] { '<', '@', '>' });
-                if(!string.IsNullOrEmpty(id))
+                if (!string.IsNullOrEmpty(id))
                 {
                     DiscordMember member = cmdArgs.Channel.Parent.GetMemberByKey(id);
                     if (member != null)
@@ -506,7 +513,7 @@ namespace Luigibot
             }));
             CommandsManager.AddCommand(new CommandStub("serverstats", "Server stats", "help me", PermissionType.Owner, cmdArgs =>
             {
-                if(cmdArgs.Channel != null && cmdArgs.Channel.Parent != null)
+                if (cmdArgs.Channel != null && cmdArgs.Channel.Parent != null)
                 {
                     DiscordServer guild = cmdArgs.Channel.Parent;
                     string msg = $"Stats for **{guild.Name}**\n```\n";
@@ -519,11 +526,11 @@ namespace Luigibot
             }));
             CommandsManager.AddCommand(new CommandStub("listroles", "Lists rolls", "help me", PermissionType.Owner, cmdArgs =>
             {
-                if(cmdArgs.Channel != null && cmdArgs.Channel.Parent != null)
+                if (cmdArgs.Channel != null && cmdArgs.Channel.Parent != null)
                 {
                     DiscordServer guild = cmdArgs.Channel.Parent;
                     string msg = $"Roles for **{guild.Name}**, per your request.\n```\n";
-                    foreach(var role in guild.Roles)
+                    foreach (var role in guild.Roles)
                     {
                         msg += $"{role.Position} - {role.Name} - {role.ID} - {role.Permissions.GetRawPermissions()}\n";
                     }
@@ -601,11 +608,11 @@ namespace Luigibot
             }));
             CommandsManager.AddCommand(new CommandStub("moduleinfo", "Shows information about a specific module.", "", PermissionType.User, 1, cmdArgs =>
             {
-                if(cmdArgs.Args.Count > 0 && cmdArgs.Args[0].Length > 0)
+                if (cmdArgs.Args.Count > 0 && cmdArgs.Args[0].Length > 0)
                 {
-                    foreach(var module in CommandsManager.Modules.ToList())
+                    foreach (var module in CommandsManager.Modules.ToList())
                     {
-                        if(module.Key.Name.ToLower().Trim() == cmdArgs.Args[0].ToLower().Trim())
+                        if (module.Key.Name.ToLower().Trim() == cmdArgs.Args[0].ToLower().Trim())
                         {
                             string msg = $"**About Module {module.Key.Name}**";
 
@@ -619,7 +626,8 @@ namespace Luigibot
                     }
                 }
             }));
-            #endregion
+
+            #endregion Old Commands
 
             var OwnerModules = new BaseOwnerModules(this);
             OwnerModules.Install(CommandsManager);
@@ -718,7 +726,7 @@ namespace Luigibot
                     }
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 owner.SendMessage("Exception during voice: `" + ex.Message + "`\n\n```" + ex.StackTrace + "\n```");
             }

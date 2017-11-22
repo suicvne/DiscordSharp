@@ -1,4 +1,5 @@
 ﻿extern alias ws4n;
+
 using DiscordSharp.Events;
 using DiscordSharp.Objects;
 using DiscordSharp.Voice;
@@ -13,9 +14,13 @@ using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using DiscordSharp.Discord;
+
 #if NETFX4_5
+
 using ws4n.WebSocket4Net;
 using System.Collections.Concurrent;
+
 #else
 using ws4n.WebSocket4Net;
 using CONCURRENT = System.Collections.Concurrent;
@@ -39,7 +44,7 @@ using CONCURRENT = System.Collections.Concurrent;
         4. Point your websocket client to the given endpoint and upon connection, send opcode 0 with the server ID, channel ID, your client ID, and that token you got prior.
         5. Opcode 2 gives you various parameters for your voice connection.
             5a. ssrc is basically your voice client ID. You will need it for your packet. It differentiates between users.
-            5b. Guess what port is for. 
+            5b. Guess what port is for.
             5c. (I believe) modes is for voice encryption.
             5d. heartbeat_interval is very important. The voice connection is extremely finnicky with its keepalives so **DONT HARDCODE THIS VALUE**. It's usually 5500 ms.
             5e. After opcode 2, you can begin your websocket keepalive.
@@ -60,14 +65,17 @@ namespace DiscordSharp
     {
         [JsonProperty("ssrc")]
         public int ssrc { get; internal set; }
+
         [JsonProperty("port")]
         public int port { get; internal set; }
+
         [JsonProperty("modes")]
         public string[] modes { get; internal set; }
+
         [JsonProperty("heartbeat_interval")]
         public int heartbeat_interval { get; internal set; }
     }
-    
+
     internal struct DiscordIpPort
     {
         public IPAddress Address;
@@ -78,6 +86,7 @@ namespace DiscordSharp
     {
         //public DiscordAudioPacket Packet { get; internal set; }
         public byte[] OpusAudio { get; internal set; }
+
         public int OpusAudioLength { get; internal set; }
         public DiscordChannel Channel { get; internal set; }
         public DiscordMember FromUser { get; internal set; }
@@ -86,6 +95,7 @@ namespace DiscordSharp
     public class DiscordVoiceConfig
     {
         internal int SampleRate { get; set; } = 48000; //discord default
+
         /// <summary>
         /// The amount of channels you wish to send over the network.
         /// Use 2 for stereo. Stereo will require more bandwidth.
@@ -126,7 +136,7 @@ namespace DiscordSharp
             }
         }
     }
-    
+
     public class DiscordVoiceClient : IDisposable
     {
         private DiscordClient _parent;
@@ -163,20 +173,29 @@ namespace DiscordSharp
         public DiscordVoiceConfig VoiceConfig { get; internal set; }
 
         #region Events
-        internal event EventHandler<LoggerMessageReceivedArgs> DebugMessageReceived;
-        internal event EventHandler<EventArgs> Disposed;
-        internal event EventHandler<DiscordVoiceUserSpeakingEventArgs> UserSpeaking;
-        internal event EventHandler<DiscordAudioPacketEventArgs> PacketReceived;
-        internal event EventHandler<EventArgs> ErrorReceived;
-        internal event EventHandler<EventArgs> VoiceConnectionComplete;
-        internal event EventHandler<EventArgs> QueueEmpty;
-#endregion
 
-#region voice sending stuff
+        internal event EventHandler<LoggerMessageReceivedArgs> DebugMessageReceived;
+
+        internal event EventHandler<EventArgs> Disposed;
+
+        internal event EventHandler<DiscordVoiceUserSpeakingEventArgs> UserSpeaking;
+
+        internal event EventHandler<DiscordAudioPacketEventArgs> PacketReceived;
+
+        internal event EventHandler<EventArgs> ErrorReceived;
+
+        internal event EventHandler<EventArgs> VoiceConnectionComplete;
+
+        internal event EventHandler<EventArgs> QueueEmpty;
+
+        #endregion Events
+
+        #region voice sending stuff
+
         /// <summary>
         /// The length, in ms, of audio for DiscordSharp to send. By default, 20.
         /// </summary>
-        static int msToSend = 20;
+        private static int msToSend = 20;
 
         /// <summary>
         /// An signed short designating the sequence of the audio being sent.
@@ -187,7 +206,8 @@ namespace DiscordSharp
         /// Unsigned int designating the timestamp offset of the audio being sent.
         /// </summary>
         internal uint ___timestamp = 0;
-#endregion
+
+        #endregion voice sending stuff
 
         public Logger GetDebugLogger => VoiceDebugLogger;
 
@@ -237,13 +257,13 @@ namespace DiscordSharp
                 mainOpusEncoder.SetForwardErrorCorrection(true);
                 msToSend = VoiceConfig.FrameLengthMs;
             }
-            if(!VoiceConfig.SendOnly)
+            if (!VoiceConfig.SendOnly)
                 InitializeOpusDecoder();
         }
 
         private void InitializeOpusDecoder()
         {
-            if(Channel != null && Channel.Type == ChannelType.Voice)
+            if (Channel != null && Channel.Type == ChannelType.Voice)
             {
                 Decoder = new OpusDecoder(VoiceConfig.SampleRate, VoiceConfig.Channels, VoiceConfig.FrameLengthMs);
             }
@@ -254,7 +274,7 @@ namespace DiscordSharp
         /// </summary>
         public void Initiate()
         {
-            if(Me == null)
+            if (Me == null)
             {
                 if (_parent != null)
                 {
@@ -286,7 +306,7 @@ namespace DiscordSharp
                 {
                     VoiceWebSocket_OnMessage(s, e);
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     VoiceDebugLogger.Log($"Exception while awaiting OnMessage?!\n\tMessage: {ex.Message}\n\tStack: {ex.StackTrace}", MessageLevel.Critical);
                 }
@@ -312,8 +332,9 @@ namespace DiscordSharp
 
             VoiceWebSocket.Open();
         }
-        
+
 #pragma warning disable 4014 //stupid await warnings
+
         private void VoiceWebSocket_OnMessage(object sender, MessageReceivedEventArgs e)
         {
             JObject message = JObject.Parse(e.Message);
@@ -325,14 +346,16 @@ namespace DiscordSharp
                     //ok, now that we have opcode 2 we have to send a packet and configure the UDP
                     InitialUDPConnection();
                     break;
+
                 case 3:
                     VoiceDebugLogger.Log("KeepAlive echoed back successfully!", MessageLevel.Unecessary);
                     break;
+
                 case 4: //you get your secret key from here
                     //post initializing the UDP client, we will receive opcode 4 and will now do the final connection steps
                     OpCode4(message);
                     //if (!VoiceConfig.SendOnly)
-                        DoUDPKeepAlive(globalTaskSource.Token);
+                    DoUDPKeepAlive(globalTaskSource.Token);
                     SendVoiceTask(globalTaskSource.Token);
                     if (!VoiceConfig.SendOnly)
                         ReceiveVoiceTask(globalTaskSource.Token);
@@ -340,15 +363,18 @@ namespace DiscordSharp
                     if (VoiceConnectionComplete != null)
                         VoiceConnectionComplete(this, new EventArgs());
                     break;
+
                 case 5: //User speaking
                     //VoiceDebugLogger.Log(e.Message);
                     OpCode5(message);
                     break;
             }
         }
+
 #pragma warning restore 4014 //stupid await warnings
 
-#region Websocket Opcode Events/other misc events
+        #region Websocket Opcode Events/other misc events
+
         internal void MemberRemoved(DiscordMember removed)
         {
             if (MembersInChannel.Contains(removed))
@@ -357,11 +383,12 @@ namespace DiscordSharp
                 VoiceDebugLogger.Log($"User {removed.Username} ({removed.ID}) left the client's current connected voice channel.");
             }
         }
+
         internal void MemberAdded(DiscordMember added)
         {
-            if(added.Parent == Guild)
+            if (added.Parent == Guild)
             {
-                if(added.CurrentVoiceChannel == Channel)
+                if (added.CurrentVoiceChannel == Channel)
                 {
                     if (MembersInChannel.Contains(added))
                         MembersInChannel.Remove(added);
@@ -370,6 +397,7 @@ namespace DiscordSharp
                 }
             }
         }
+
         private void OpCode5(JObject message)
         {
             DiscordVoiceUserSpeakingEventArgs e = new DiscordVoiceUserSpeakingEventArgs();
@@ -378,7 +406,7 @@ namespace DiscordSharp
             e.Speaking = message["d"]["speaking"].ToObject<bool>();
             e.Ssrc = message["d"]["ssrc"].ToObject<int>();
 
-            if(e.UserSpeaking != null)
+            if (e.UserSpeaking != null)
             {
                 if (!SsrcDictionary.ContainsKey(e.UserSpeaking))
                     SsrcDictionary.Add(e.UserSpeaking, e.Ssrc);
@@ -409,6 +437,7 @@ namespace DiscordSharp
         }
 
 #pragma warning disable 4014
+
         private void OpCode2(JObject message)
         {
             Params = JsonConvert.DeserializeObject<VoiceConnectionParameters>(message["d"].ToString());
@@ -424,6 +453,7 @@ namespace DiscordSharp
             //SendWebSocketKeepalive();
             DoWebSocketKeepAlive(globalTaskSource.Token);
         }
+
 #pragma warning restore 4014
 
         private void VoiceWebSocket_OnError(object sender, EventArgs e)
@@ -438,34 +468,38 @@ namespace DiscordSharp
         {
             VoiceDebugLogger.Log($"VoiceWebSocket was closed.", MessageLevel.Critical);
             ErrorReceived?.Invoke(this, new EventArgs());
-            
+
             Dispose();
         }
-#endregion
+
+        #endregion Websocket Opcode Events/other misc events
 
         private bool QueueEmptyEventTriggered = false;
-#region Internal Voice Methods
+
+        #region Internal Voice Methods
+
 #pragma warning disable 4014
+
         private void SendVoiceTask(CancellationToken token)
         {
-            VoiceSendThread =  new Thread(() =>
-            {
-                while (!token.IsCancellationRequested)
-                {
-                    if (!voiceToSend.IsEmpty)
-                    {
-                        QueueEmptyEventTriggered = false;
-                        try
-                        {
-                            SendVoiceAsync(token);
-                        }
-                        catch (Exception ex)
-                        {
-                            VoiceDebugLogger.Log(ex.Message, MessageLevel.Error);
-                        }
-                    }
-                    else
-                    {
+            VoiceSendThread = new Thread(() =>
+           {
+               while (!token.IsCancellationRequested)
+               {
+                   if (!voiceToSend.IsEmpty)
+                   {
+                       QueueEmptyEventTriggered = false;
+                       try
+                       {
+                           SendVoiceAsync(token);
+                       }
+                       catch (Exception ex)
+                       {
+                           VoiceDebugLogger.Log(ex.Message, MessageLevel.Error);
+                       }
+                   }
+                   else
+                   {
 #if NETFX4_5
                         //await Task.Delay(1000).ConfigureAwait(false);
                         Thread.Sleep(1000);
@@ -473,25 +507,27 @@ namespace DiscordSharp
                         Thread.Sleep(1000);
 #endif
                     }
-                    if (___sequence > 0 || ___timestamp > 0)
-                    {
-                        if (voiceToSend.IsEmpty)
-                        {
+                   if (___sequence > 0 || ___timestamp > 0)
+                   {
+                       if (voiceToSend.IsEmpty)
+                       {
                             //reset these
                             ___sequence = 0;
-                            ___timestamp = 0;
-                            if (!QueueEmptyEventTriggered)
-                            {
-                                QueueEmpty?.Invoke(this, new EventArgs());
-                                QueueEmptyEventTriggered = true;
-                            }
-                        }
-                    }
-                }
-            });
+                           ___timestamp = 0;
+                           if (!QueueEmptyEventTriggered)
+                           {
+                               QueueEmpty?.Invoke(this, new EventArgs());
+                               QueueEmptyEventTriggered = true;
+                           }
+                       }
+                   }
+               }
+           });
             VoiceSendThread.Start();
         }
+
 #pragma warning disable 4014
+
         private Task ReceiveVoiceTask(CancellationToken token)
         {
             VoiceDebugLogger.Log("Setting up for voice receive.");
@@ -501,7 +537,7 @@ namespace DiscordSharp
             return Task.Factory.StartNew(async () =>
 #endif
             {
-                while(!token.IsCancellationRequested)
+                while (!token.IsCancellationRequested)
                 {
                     if (_udp.Available > 0)
                     {
@@ -530,7 +566,7 @@ namespace DiscordSharp
                 int packetLength, resultOffset, resultLength;
                 decodingBuffer = new byte[4000];
                 nonce = new byte[24];
-				packetLength = packet.Length;
+                packetLength = packet.Length;
 
                 if (packet.Length > 0)
                 {
@@ -566,7 +602,6 @@ namespace DiscordSharp
                             });
                         }
                     }
-
                 }
             }
         }
@@ -581,6 +616,7 @@ namespace DiscordSharp
         }
 
 #pragma warning restore 4014
+
         private void SendVoiceAsync(CancellationToken cancelToken)
         {
             byte[] opusAudio; //pcm data
@@ -603,7 +639,7 @@ namespace DiscordSharp
                 //byte[] opusAudio = new byte[queuedOpus.Length - 4];
                 //Buffer.BlockCopy(queuedOpus, 0, opusAudio, 0, opusAudio.Length);
                 //int encodedLength = mainOpusEncoder.EncodeFrame(voiceToEncode, 0, opusAudio);
-                
+
                 int encodedLength = BitConverter.ToInt32(opusAudio, opusAudio.Length - 4);
 
                 int dataSent = 0;
@@ -667,7 +703,7 @@ namespace DiscordSharp
 
         private void DoWebSocketKeepAlive(CancellationToken token)
         {
-            WebsocketKeepAliveThread = new Thread(() => 
+            WebsocketKeepAliveThread = new Thread(() =>
             {
                 try
                 {
@@ -696,7 +732,6 @@ namespace DiscordSharp
 
         private void DoUDPKeepAlive(CancellationToken token)
         {
-
             UDPKeepAliveThread = new Thread(() =>
             {
                 byte[] keepAlive = new byte[5];
@@ -728,6 +763,7 @@ namespace DiscordSharp
             });
             UDPKeepAliveThread.Start();
         }
+
         private async Task InitialUDPConnection()
         {
             try
@@ -740,7 +776,6 @@ namespace DiscordSharp
                 VoiceDebugLogger.Log($"Initialized UDP Client at {VoiceEndpoint.Replace(":80", "")}:{Params.port}");
 
                 udpEndpoint = new IPEndPoint(Dns.GetHostAddresses(VoiceEndpoint.Replace(":80", ""))[0], 80);
-
 
                 byte[] packet = new byte[70]; //the initial packet
                 packet[0] = (byte)((Params.ssrc >> 24) & 0xFF);
@@ -784,6 +819,7 @@ namespace DiscordSharp
                 VoiceDebugLogger.Log("UDP Client Error: " + ex.Message, MessageLevel.Critical);
             }
         }
+
         /// <summary>
         /// Sends our IP over UDP for Discord's voice server to process. Also sends op 1
         /// </summary>
@@ -838,9 +874,11 @@ namespace DiscordSharp
             VoiceDebugLogger.Log($"Our IP is {returnVal.Address} and we're using port {returnVal.port}.");
             return returnVal;
         }
-#endregion
 
-#region Public Methods
+        #endregion Internal Voice Methods
+
+        #region Public Methods
+
         /// <summary>
         /// Enqueues audio to be sent through the UDP client.
         /// </summary>
@@ -867,7 +905,7 @@ namespace DiscordSharp
             byte[] ignored;
             while (voiceToSend.TryDequeue(out ignored)) ;
         }
-        
+
         /// <summary>
         /// Echos a given DiscordAudioPacket.
         /// </summary>
@@ -877,6 +915,7 @@ namespace DiscordSharp
         {
             await SendPacket(DiscordAudioPacket.EchoPacket(packet.AsRawPacket(), Params.ssrc)).ConfigureAwait(false);
         }
+
         /// <summary>
         /// Sends a given DiscordAudioPacket over the UDP client..
         /// </summary>
@@ -894,6 +933,7 @@ namespace DiscordSharp
                 VoiceDebugLogger.Log("Sent packet through SendPacket task.", MessageLevel.Unecessary);
             }
         }
+
         /// <summary>
         /// Whether or not the current client is set to be speaking.
         /// </summary>
@@ -922,16 +962,19 @@ namespace DiscordSharp
             else
                 VoiceDebugLogger.Log("VoiceWebSocket null?", MessageLevel.Critical);
         }
-#endregion
 
-#region Cleanup
-        bool disposed = false;
-        SafeHandle handle = new SafeFileHandle(IntPtr.Zero, true);
+        #endregion Public Methods
+
+        #region Cleanup
+
+        private bool disposed = false;
+        private SafeHandle handle = new SafeFileHandle(IntPtr.Zero, true);
+
         protected virtual void Dispose(bool disposing)
         {
             if (disposed)
                 return;
-            if(disposing)
+            if (disposing)
             {
                 handle.Dispose();
 
@@ -959,11 +1002,12 @@ namespace DiscordSharp
         public void Dispose()
         {
             Dispose(true);
-            GC.SuppressFinalize(this); 
-            
+            GC.SuppressFinalize(this);
+
             if (Disposed != null)
                 Disposed(this, new EventArgs());
         }
-#endregion
+
+        #endregion Cleanup
     }
 }

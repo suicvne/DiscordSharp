@@ -102,10 +102,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Color.cs" />
+    <Compile Include="Discord\DiscordClient.cs" />
+    <Compile Include="Discord\DiscordClientEventHandlers.cs" />
     <Compile Include="Events\DiscordBanRemovedEventArgs.cs" />
     <Compile Include="EpochTime.cs" />
     <Compile Include="Events\DiscordGuildBanEventArgs.cs" />
     <Compile Include="Events\DiscordVoiceUserSpeaking.cs" />
+    <Compile Include="Objects\DiscordMessageType.cs" />
+    <Compile Include="Objects\DiscordProperties.cs" />
     <Compile Include="Objects\DiscordVoiceState.cs" />
     <Compile Include="Objects\DiscordServer.cs" />
     <Compile Include="Objects\MessageAttachment.cs" />
@@ -143,7 +147,6 @@
     <Compile Include="Events\DiscordKeepAliveSentEventArgs.cs" />
     <Compile Include="Objects\DiscordLoginException.cs" />
     <Compile Include="Events\DiscordChannelCreateEventArgs.cs" />
-    <Compile Include="DiscordClient.cs" />
     <Compile Include="Objects\DiscordChannel.cs" />
     <Compile Include="Events\DiscordConnectEventArgs.cs" />
     <Compile Include="Objects\DiscordLoginInformation.cs" />
