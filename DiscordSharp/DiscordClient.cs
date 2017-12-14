@@ -1238,7 +1238,32 @@ namespace DiscordSharp
         /// <returns></returns>
         public DiscordChannel GetChannelByID(long id)
         {
-            return ServersList.Find(x => x.Channels.Find(y => y.ID == id.ToString()) != null).Channels.Find(z => z.ID == id.ToString());
+            foreach (DiscordServer server in ServersList)
+            {
+                foreach (DiscordChannel channel in server.Channels)
+                {
+                    if (channel.ID != null && channel.ID == id.ToString())
+                    {
+                        return channel;
+                    }
+                }
+            }
+            return null;
+        }
+
+        public DiscordServer GetServerByChannelID(long id)
+        {
+            foreach (DiscordServer server in ServersList)
+            {
+                foreach (DiscordChannel channel in server.Channels)
+                {
+                    if (channel.ID != null && channel.ID == id.ToString())
+                    {
+                        return server;
+                    }
+                }
+            }
+            return null;
         }
 
         /// <summary>
@@ -1967,7 +1992,6 @@ namespace DiscordSharp
 
         private void ClientPacketReceived(JObject message)
         {
-            Console.WriteLine(message["t"].ToString());
             switch (message["t"].ToString())
             {
                 case ("READY"):
@@ -2159,32 +2183,40 @@ namespace DiscordSharp
                 JArray membersAsArray = JArray.Parse(message["d"]["members"].ToString());
                 foreach (var member in membersAsArray)
                 {
-                    //if (GuildHasMemberWithID(inServer, member["user"]["id"].ToString()))
-                    //    continue;
-                    DiscordMember _member = JsonConvert.DeserializeObject<DiscordMember>(member["user"].ToString());
-                    if (!member["roles"].IsNullOrEmpty())
+                    DiscordMember existingMember = inServer.GetMemberByKey((string) member["user"]["id"]);
+
+                    if (existingMember == null)
                     {
-                        JArray rollsArray = JArray.Parse(member["roles"].ToString());
-                        if (rollsArray.Count > 0)
+                        existingMember = JsonConvert.DeserializeObject<DiscordMember>(member["user"].ToString());
+                        if (!member["roles"].IsNullOrEmpty())
                         {
-                            foreach (var rollID in rollsArray)
-                                _member.Roles.Add(inServer.Roles.Find(x => x.ID == rollID.ToString()));
+                            JArray rollsArray = JArray.Parse(member["roles"].ToString());
+                            if (rollsArray.Count > 0)
+                            {
+                                foreach (var rollID in rollsArray)
+                                {
+                                    existingMember.Roles.Add(inServer.Roles.Find(x => x.ID == rollID.ToString()));
+                                }
+                            }
                         }
+                        existingMember.Muted = member["mute"].ToObject<bool>();
+                        existingMember.Deaf = member["deaf"].ToObject<bool>();
+                        existingMember.Roles.Add(inServer.Roles.Find(x => x.Name == "@everyone"));
+                        existingMember.Status = Status.Offline;
+                        existingMember.parentclient = this;
+                        existingMember.Parent = inServer;
+                        inServer.AddMember(existingMember);
+                    } else
+                    {
+                        // does nothing, already in list
                     }
-                    _member.Muted = member["mute"].ToObject<bool>();
-                    _member.Deaf = member["deaf"].ToObject<bool>();
-                    _member.Roles.Add(inServer.Roles.Find(x => x.Name == "@everyone"));
-                    _member.Status = Status.Offline;
-                    _member.parentclient = this;
-                    _member.Parent = inServer;
-                    inServer.AddMember(_member);
 
                     ///Check private channels
-                    DiscordPrivateChannel _channel = PrivateChannels.Find(x => x.user_id == _member.ID);
+                    DiscordPrivateChannel _channel = PrivateChannels.Find(x => x.user_id == existingMember.ID);
                     if (_channel != null)
                     {
                         DebugLogger.Log("Found user for private channel!", MessageLevel.Debug);
-                        _channel.Recipient = _member;
+                        _channel.Recipient = existingMember;
                     }
                 }
             }
