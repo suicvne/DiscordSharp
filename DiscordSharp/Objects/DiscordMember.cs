@@ -13,7 +13,10 @@ namespace DiscordSharp.Objects
 {
     public enum Status
     {
-        Online, Idle, Offline
+        Online,
+        Idle,
+        Offline,
+        DoNotDisturb
     }
     public class DiscordMember
     {
@@ -52,12 +55,23 @@ namespace DiscordSharp.Objects
         internal void SetPresence(string status)
         {
             string checkAgainst = status.ToLower().Trim();
-            if (checkAgainst == "online")
-                Status = Status.Online;
-            else if (checkAgainst == "idle")
-                Status = Status.Idle;
-            else
-                Status = Status.Offline;
+            switch (checkAgainst)
+            {
+                case "dnd":
+                    Status = Status.DoNotDisturb;
+                    break;
+                case "online":
+                    Status = Status.Online;
+                    break;
+                case "idle":
+                    Status = Status.Idle;
+                    break;
+                case "offline":
+                    Status = Status.Offline;
+                    break;
+                default:
+                    throw new Exception("New presence status type found: " + status);
+            }
         }
 
 
