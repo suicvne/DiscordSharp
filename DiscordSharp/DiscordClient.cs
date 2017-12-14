@@ -118,6 +118,7 @@ namespace DiscordSharp
         /// </summary>
         public DiscordProperties DiscordProperties { get; set; } = new DiscordProperties();
 
+
         /// <summary>
         /// The current DiscordMember object assosciated with the account you're connected to.
         /// </summary>
@@ -417,11 +418,11 @@ namespace DiscordSharp
                             if (!presence["game"].IsNullOrEmpty())
                             {
                                 member.CurrentGame = presence["game"]["name"].ToString();
-                                if (presence["d"]["game"]["type"].ToObject<int>() == 1)
+                                if (presence["game"]["type"].ToObject<int>() == 1)
                                 {
                                     member.Streaming = true;
-                                    if (presence["d"]["game"]["url"].ToString() != null)
-                                        member.StreamURL = presence["d"]["game"]["url"].ToString();
+                                    if (presence["game"]["url"].ToString() != null)
+                                        member.StreamURL = presence["game"]["url"].ToString();
                                 }
                             }
                         }
@@ -433,36 +434,40 @@ namespace DiscordSharp
             }
             if (PrivateChannels == null)
                 PrivateChannels = new List<DiscordPrivateChannel>();
-            foreach (var privateChannel in m["d"]["private_channels"])
+            foreach (JObject privateChannel in m["d"]["private_channels"])
             {
-                DiscordPrivateChannel tempPrivate = JsonConvert.DeserializeObject<DiscordPrivateChannel>(privateChannel.ToString());
-                tempPrivate.Client = this;
-                tempPrivate.user_id = privateChannel["recipient"]["id"].ToString();
-                DiscordServer potentialServer = new DiscordServer();
-                ServersList.ForEach(x =>
+                foreach (JObject recepient in privateChannel["recipients"])
                 {
-                    if (x.GetMemberByKey(privateChannel["recipient"]["id"].ToString()) != null)
+                    DiscordPrivateChannel tempPrivate = JsonConvert.DeserializeObject<DiscordPrivateChannel>(privateChannel.ToString());
+                    tempPrivate.Client = this;
+                    tempPrivate.user_id = recepient["id"].ToString();
+                    DiscordServer potentialServer = new DiscordServer();
+                    ServersList.ForEach(x =>
                     {
-                        potentialServer = x;
-                    }
-                });
-                if (potentialServer.Owner != null) //should be a safe test..i hope
-                {
-                    DiscordMember recipient = potentialServer.GetMemberByKey(privateChannel["recipient"]["id"].ToString());
-                    if (recipient != null)
+                        if (x.GetMemberByKey(recepient["id"].ToString()) != null)
+                        {
+                            potentialServer = x;
+                        }
+                    });
+                    if (potentialServer.Owner != null) //should be a safe test..i hope
                     {
-                        tempPrivate.Recipient = recipient;
+                        DiscordMember recipient = potentialServer.GetMemberByKey(recepient["id"].ToString());
+                        if (recipient != null)
+                        {
+                            tempPrivate.Recipient = recipient;
+                        }
+                        else
+                        {
+                            DebugLogger.Log("Recipient was null!!!!", MessageLevel.Critical);
+                        }
                     }
                     else
                     {
-                        DebugLogger.Log("Recipient was null!!!!", MessageLevel.Critical);
+                        DebugLogger.Log("No potential server found for user's private channel null! This will probably fix itself.", MessageLevel.Debug);
                     }
+                    PrivateChannels.Add(tempPrivate);
                 }
-                else
-                {
-                    DebugLogger.Log("No potential server found for user's private channel null! This will probably fix itself.", MessageLevel.Debug);
-                }
-                PrivateChannels.Add(tempPrivate);
+                
             }
 
         }
@@ -1895,7 +1900,6 @@ namespace DiscordSharp
                 {
                     DebugLogger.Log($"MessageReceived Error: {ex.Message}\n\n```{e.Message}\n```\n", MessageLevel.Error);
                 }
-
                 if (EnableVerboseLogging)
                     if (message["t"].ToString() != "READY")
                         DebugLogger.Log(message.ToString(), MessageLevel.Unecessary);
@@ -1933,7 +1937,7 @@ namespace DiscordSharp
 
         private void MiscellaneousOpcodes(JObject message)
         {
-            switch (message["d"].ToObject<int>())
+            switch (message["op"].ToObject<int>())
             {
                 case Opcodes.INVALIDATE_SESSION:
                     // TODO: the session was invalidated and a full reconnection must be performed.
@@ -1958,16 +1962,24 @@ namespace DiscordSharp
 
         private void ClientPacketReceived(JObject message)
         {
+            Console.WriteLine(message["t"].ToString());
             switch (message["t"].ToString())
             {
                 case ("READY"):
                     Sequence = message["s"].ToObject<int>();
                     DiscordGatewayVersion = message["d"]["v"].ToObject<int>();
-                    HeartbeatInterval = message["d"]["heartbeat_interval"].ToObject<int>();
+                    if (message["d"]?["heartbeat_interval"] != null)
+                        HeartbeatInterval = message["d"]["heartbeat_interval"].ToObject<int>();
                     BeginHeartbeatTask();
+
                     if (WriteLatestReady)
+                    {
                         using (var sw = new StreamWriter("READY_LATEST.txt"))
+                        {
                             sw.Write(message);
+                        }
+                    }
+
                     Me = JsonConvert.DeserializeObject<DiscordMember>(message["d"]["user"].ToString());
                     Me.parentclient = this;
                     IsBotAccount = message["d"]["user"]["bot"].IsNullOrEmpty() ? false : message["d"]["user"]["bot"].ToObject<bool>();
@@ -1994,6 +2006,8 @@ namespace DiscordSharp
                             }
                         });
                         ws.Send(wsChunkTest);
+
+                        //ws.Send(@"{""op"":4,""d"":{ ""guild_id"":null,""channel_id"":null,""self_mute"":true,""self_deaf"":false,""self_video"":false}}");
                     }
 
                     ReadyComplete = true;
@@ -2080,8 +2094,7 @@ namespace DiscordSharp
                 case ("MESSAGE_ACK"): //ignore this message, it's irrelevant
                     break;
                 default:
-                    if (UnknownMessageTypeReceived != null)
-                        UnknownMessageTypeReceived(this, new UnknownMessageEventArgs { RawJson = message });
+                        UnknownMessageTypeReceived?.Invoke(this, new UnknownMessageEventArgs { RawJson = message });
                     break;
             }
         }
@@ -2096,7 +2109,9 @@ namespace DiscordSharp
                     v = 4,
                     token = token,
                     /*large_threshold = 50,*/
-                    properties = DiscordProperties
+                    properties = DiscordProperties,
+
+                    compress = false
                 }
             });
 
@@ -2133,9 +2148,9 @@ namespace DiscordSharp
                     //if (GuildHasMemberWithID(inServer, member["user"]["id"].ToString()))
                     //    continue;
                     DiscordMember _member = JsonConvert.DeserializeObject<DiscordMember>(member["user"].ToString());
-                    if (!member["user"]["roles"].IsNullOrEmpty())
+                    if (!member["roles"].IsNullOrEmpty())
                     {
-                        JArray rollsArray = JArray.Parse(member["user"]["roles"].ToString());
+                        JArray rollsArray = JArray.Parse(member["roles"].ToString());
                         if (rollsArray.Count > 0)
                         {
                             foreach (var rollID in rollsArray)
