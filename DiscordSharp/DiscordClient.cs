@@ -118,6 +118,11 @@ namespace DiscordSharp
         /// </summary>
         public DiscordProperties DiscordProperties { get; set; } = new DiscordProperties();
 
+        /// <summary>
+        /// Custom properties for the default discord channel to listen to
+        /// This updates with various events such as offline/online status
+        /// </summary>
+        public string[] DiscordSyncedGuilds { get; set; } = new string[] { };
 
         /// <summary>
         /// The current DiscordMember object assosciated with the account you're connected to.
@@ -2111,6 +2116,15 @@ namespace DiscordSharp
                     /*large_threshold = 50,*/
                     properties = DiscordProperties,
 
+                    large_threshold = 100,
+                    synced_guilds = DiscordSyncedGuilds,
+                    presence = new 
+                    {
+                        status = "online",
+                        since = 0,
+                        afk = false,
+                        game = "null",
+                    },
                     compress = false
                 }
             });
