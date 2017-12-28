@@ -1,7 +1,9 @@
-# This project is dead. [Use Discord.NET](https://github.com/RogueException/Discord.Net) or [DSharpPlus](https://github.com/NaamloosDT/DSharpPlus)
+# DiscordSharp REVIVED! 
 # DiscordSharp [![Build status](https://ci.appveyor.com/api/projects/status/6ufv2gtyrc087xrd?svg=true)](https://ci.appveyor.com/project/Luigifan/discordsharp)
 
 Welcome to the DiscordSharp dev branch!
+A fork of the original DiscordSharp at [![Link](https://github.com/suicvne/DiscordSharp)].
+Long term support guaranteed.
 
 A C# API for Discord.
 
@@ -16,8 +18,16 @@ Discord is what I like to call an *"event-based"* client. In other words, you ge
 
 ```
 DiscordClient client = new DiscordClient();
-client.ClientPrivateInformation.Email = "email";
-client.ClientPrivateInformation.Password = "pass";
+client.ClientPrivateInformation.Email = "<YOUR DISCORD EMAIL>";
+client.ClientPrivateInformation.Password = "<YOUR DISCORD PASSWORD>";
+
+client.DiscordProperties.OS = "Windows";
+client.DiscordProperties.Browser = "Chrome";
+client.DiscordProperties.Device = string.Empty;
+client.DiscordProperties.referrer = string.Empty;
+client.DiscordProperties.referring_domain = string.Empty;
+
+client.DiscordSyncedGuilds = new string[] { }; // List of Discord guild IDs to subscribe to. With this you'll be able to get information such as idle/offline/online status of users.
 
 client.Connected += (sender, e) =>
 {
