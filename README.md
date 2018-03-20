@@ -9,8 +9,7 @@ A C# API for Discord.
 
 # From Nuget
 
-DiscordSharp is now available on NuGet! It is marked as pre-release package at the moment. At your package manager console, type
-`Install-Package DiscordSharp -Pre` and it will install the additional dependencies (Newtonsoft.Json & websocket-sharp)
+- Unavailable for now. Please compile from source -
 
 # How to use
 
