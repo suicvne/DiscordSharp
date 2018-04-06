@@ -4,16 +4,19 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DiscordSharp.Discord;
 
 namespace DiscordSharp.Commands
 {
     public class ModuleNotEnabledException : Exception
     {
-        IModule module;
+        private IModule module;
+
         public IModule Module
         {
             get { return module; }
         }
+
         public ModuleNotEnabledException(string message, IModule module) : base(message)
         {
             this.module = module;
@@ -22,12 +25,15 @@ namespace DiscordSharp.Commands
 
     public class BaseModuleToggleException : Exception
     {
-        public BaseModuleToggleException(string message) : base(message) { }
+        public BaseModuleToggleException(string message) : base(message)
+        {
+        }
     }
 
     public class CommandsManager
     {
         private readonly DiscordClient __client;
+
         public DiscordClient Client
         {
             get
@@ -39,6 +45,7 @@ namespace DiscordSharp.Commands
         public Random rng = new Random((int)DateTime.Now.Ticks);
 
         private List<ICommand> __commands;
+
         public List<ICommand> Commands
         {
             get { return __commands; }
@@ -50,13 +57,15 @@ namespace DiscordSharp.Commands
         /// Value = Whether or not the module is enabled.
         /// </summary>
         private Dictionary<IModule, bool> __modules;
+
         public Dictionary<IModule, bool> Modules
         {
             get { return __modules; }
         }
 
-        //id, permission 
+        //id, permission
         private static Dictionary<string, PermissionType> __internalUserRoles;
+
         public static Dictionary<string, PermissionType> UserRoles
         {
             get
@@ -69,7 +78,7 @@ namespace DiscordSharp.Commands
         {
             if (__internalUserRoles.Count > 0)
             {
-                foreach(var perm in __internalUserRoles)
+                foreach (var perm in __internalUserRoles)
                 {
                     if (perm.Key == id)
                         return perm.Value;
@@ -91,7 +100,7 @@ namespace DiscordSharp.Commands
 
         public bool HasPermission(DiscordMember member, PermissionType permission)
         {
-            if(__internalUserRoles.ContainsKey(member.ID))
+            if (__internalUserRoles.ContainsKey(member.ID))
             {
                 foreach (var perm in __internalUserRoles)
                     if (perm.Key == member.ID && (int)perm.Value >= (int)permission)
@@ -106,6 +115,7 @@ namespace DiscordSharp.Commands
                 __internalUserRoles.Remove(member.ID);
             __internalUserRoles.Add(member.ID, permission);
         }
+
         public void AddPermission(string memberID, PermissionType permission)
         {
             if (__internalUserRoles.ContainsKey(memberID))
@@ -131,7 +141,7 @@ namespace DiscordSharp.Commands
         {
             Dictionary<string, bool> dict = new Dictionary<string, bool>();
 
-            lock(__modules)
+            lock (__modules)
             {
                 foreach (var kvp in __modules)
                 {
@@ -152,7 +162,7 @@ namespace DiscordSharp.Commands
 
                 if (command != null && command.Parent != null) //if it's a generic command without a parent then don't bother doing this.
                 {
-                    lock(__modules)
+                    lock (__modules)
                     {
                         if (__modules[command.Parent] == false)
                         {
@@ -161,7 +171,7 @@ namespace DiscordSharp.Commands
                     }
                 }
 
-                if(command != null)
+                if (command != null)
                 {
                     command.Args.Clear();
                     if (command.ArgCount > 0)
@@ -176,11 +186,11 @@ namespace DiscordSharp.Commands
                     return 0;
                 }
             }
-            catch(UnauthorizedAccessException uaex)
+            catch (UnauthorizedAccessException uaex)
             {
                 throw uaex; //no permission
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 throw ex;
             }
@@ -189,7 +199,7 @@ namespace DiscordSharp.Commands
 
         public bool ModuleEnabled(string name)
         {
-            lock(__modules)
+            lock (__modules)
             {
                 foreach (var kvp in __modules)
                 {
@@ -204,7 +214,7 @@ namespace DiscordSharp.Commands
 
         public void EnableModule(string name)
         {
-            lock(__modules)
+            lock (__modules)
             {
                 foreach (var kvp in __modules)
                 {
@@ -222,7 +232,7 @@ namespace DiscordSharp.Commands
             if (name.ToLower().Trim() == "base")
                 throw new BaseModuleToggleException("Can't disable base module!");
 
-            lock(__modules)
+            lock (__modules)
             {
                 foreach (var kvp in __modules)
                 {
@@ -250,7 +260,7 @@ namespace DiscordSharp.Commands
         {
             command.Parent = fromModule;
             command.Parent.Commands.Add(command);
-            lock(__modules)
+            lock (__modules)
             {
                 if (!__modules.ContainsKey(fromModule))
                     __modules.Add(fromModule, true);

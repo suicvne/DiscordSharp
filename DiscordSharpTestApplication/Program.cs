@@ -16,6 +16,7 @@ using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
 using System.ComponentModel;
 using System.Diagnostics;
+using DiscordSharp.Discord;
 using Luigibot;
 
 namespace DiscordSharpTestApplication
@@ -100,13 +101,16 @@ namespace DiscordSharpTestApplication
                 case MessageLevel.Debug:
                     Console.ForegroundColor = ConsoleColor.Green;
                     break;
+
                 case MessageLevel.Error:
                     Console.ForegroundColor = ConsoleColor.Red;
                     break;
+
                 case MessageLevel.Critical:
                     Console.ForegroundColor = ConsoleColor.White;
                     Console.BackgroundColor = ConsoleColor.Red;
                     break;
+
                 case MessageLevel.Warning:
                     Console.ForegroundColor = ConsoleColor.Yellow;
                     break;
@@ -119,12 +123,12 @@ namespace DiscordSharpTestApplication
 
         [STAThread]
         public static void Main(string[] args)
-        {            
+        {
             LuigibotMain luigibot = new LuigibotMain();
             luigibot.RunLuigibot();
 
             string output = "";
-            while((output = Console.ReadLine()) != null)
+            while ((output = Console.ReadLine()) != null)
             {
                 if (output == "")
                 {
@@ -133,6 +137,5 @@ namespace DiscordSharpTestApplication
                 }
             }
         }
-
     }
 }

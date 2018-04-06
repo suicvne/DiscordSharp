@@ -8,6 +8,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using DiscordSharp.Discord;
 
 namespace DiscordSharp.Objects
 {
@@ -15,22 +16,30 @@ namespace DiscordSharp.Objects
     {
         Online, Idle, Offline
     }
+
     public class DiscordMember
     {
         [JsonProperty("username")]
         public string Username { get; internal set; }
+
         [JsonProperty("id")]
         public string ID { get; internal set; }
+
         [JsonProperty("discriminator")]
         public string Discriminator { get; internal set; }
+
         [JsonProperty("avatar")]
         public string Avatar { get; internal set; }
+
         [JsonProperty("verified")]
         public bool Verified { get; internal set; }
+
         [JsonProperty("bot")]
         public bool IsBot { get; internal set; } = false;
+
         [JsonProperty("joined_at")]
         public DateTime JoinedAt { get; internal set; }
+
         [JsonProperty("nick")]
         public string Nickname { get; internal set; } = "";
 
@@ -42,10 +51,13 @@ namespace DiscordSharp.Objects
         /**
         Voice only
         */
+
         [JsonProperty("mute")]
         public bool Muted { get; internal set; } = false;
+
         [JsonProperty("deaf")]
         public bool Deaf { get; internal set; } = false;
+
         public DiscordChannel CurrentVoiceChannel { get; internal set; }
         public DiscordVoiceState VoiceState { get; internal set; }
 
@@ -60,12 +72,10 @@ namespace DiscordSharp.Objects
                 Status = Status.Offline;
         }
 
-
         /// <summary>
         /// Applicable only for the currently signed in user.
         /// </summary>
         public string Email { get; internal set; }
-
 
         public List<DiscordRole> Roles { get; set; }
 
@@ -73,8 +83,9 @@ namespace DiscordSharp.Objects
         /// The server the user belongs to.
         /// </summary>
         public DiscordServer Parent { get; internal set; }
+
         internal DiscordClient parentclient { get; set; }
-        
+
         internal DiscordMember(DiscordClient parent)
         {
             Roles = new List<DiscordRole>();
@@ -99,7 +110,7 @@ namespace DiscordSharp.Objects
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <returns>The URL of the user's avatar.</returns>
         public Uri GetAvatarURL()
@@ -108,12 +119,12 @@ namespace DiscordSharp.Objects
         }
 
         /// <summary>
-        /// Kicks this DiscordMember from the guild that's assumed from their 
+        /// Kicks this DiscordMember from the guild that's assumed from their
         /// parent property.
         /// </summary>
         public void Kick()
         {
-            if(parentclient.Me.ID == this.ID)
+            if (parentclient.Me.ID == this.ID)
                 throw new InvalidOperationException("Can't kick self!");
             string url = Endpoints.BaseAPI + Endpoints.Guilds + $"/{Parent.ID}" + Endpoints.Members + $"/{ID}";
             try
@@ -226,6 +237,7 @@ namespace DiscordSharp.Objects
                 parentclient.GetTextClientLogger.Log($"Error ocurred while sending message to user, step 1: {ex.Message}", MessageLevel.Error);
             }
         }
+
         private void SendActualMessage(string id, string message)
         {
             string url = Endpoints.BaseAPI + Endpoints.Channels + $"/{id}" + Endpoints.Messages;
@@ -246,7 +258,7 @@ namespace DiscordSharp.Objects
             return this.ID == obj.ID;
         }
 
-        public static bool operator==(DiscordMember x, DiscordMember y)
+        public static bool operator ==(DiscordMember x, DiscordMember y)
         {
             if ((object)x == null && (object)y == null)
                 return true;
@@ -268,7 +280,7 @@ namespace DiscordSharp.Objects
 
         public override bool Equals(object obj)
         {
-            if(obj.GetType() == typeof(DiscordMember))
+            if (obj.GetType() == typeof(DiscordMember))
                 return this == (DiscordMember)obj;
             else
                 return false;

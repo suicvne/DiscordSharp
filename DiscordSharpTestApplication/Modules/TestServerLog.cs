@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DiscordSharp.Discord;
 
 namespace Luigibot.Modules
 {
@@ -22,7 +23,7 @@ namespace Luigibot.Modules
             DiscordSharpTestServer = client.GetServersList().Find(
                 x => x.Name == "DiscordSharp Test Server"
             ); //todo replace with id
-            if(DiscordSharpTestServer != null)
+            if (DiscordSharpTestServer != null)
             {
                 LogChannel = DiscordSharpTestServer.Channels.Find(x => x.Name == "log" && x.Type == ChannelType.Text);
             }
@@ -36,7 +37,7 @@ namespace Luigibot.Modules
             manager.Client.GuildUpdated += (sender, e) =>
             {
                 Console.WriteLine($"[TestServerLog Module] Guild update. Old guild name: {e.OldServer.Name}");
-                if(DiscordSharpTestServer != null)
+                if (DiscordSharpTestServer != null)
                 {
                     if (e.NewServer.ID == DiscordSharpTestServer.ID) //test server
                     {

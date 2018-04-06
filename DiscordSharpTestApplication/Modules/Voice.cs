@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DiscordSharp.Discord;
 using VideoLibrary;
 
 namespace Luigibot.Modules
@@ -39,7 +40,7 @@ namespace Luigibot.Modules
 
                 vc.SetSpeaking(true);
 
-                if(video.AudioFormat == AudioFormat.Mp3)
+                if (video.AudioFormat == AudioFormat.Mp3)
                 {
                     using (var mp3Reader = new Mp3FileReader(video.Stream()))
                     {
@@ -64,7 +65,7 @@ namespace Luigibot.Modules
                         }
                     }
                 }
-                else if(video.AudioFormat == AudioFormat.Vorbis)
+                else if (video.AudioFormat == AudioFormat.Vorbis)
                 {
                     using (var vorbis = new NAudio.Vorbis.VorbisWaveReader(video.Stream()))
                     {
