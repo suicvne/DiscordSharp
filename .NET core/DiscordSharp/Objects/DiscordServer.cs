@@ -114,14 +114,11 @@ namespace DiscordSharp.Objects
             if (Unavailable)
                 throw new Exception("Server is currently unavailable!");
 
-            try
+            if (Members.ContainsKey(key))
             {
-                return Members.First(x => x.Key == key).Value;
+                return Members[key];
             }
-            catch
-            {
-                return null; //because instead of just returning null by default, it has to do this shit.
-            }
+            return null;
         }
         public DiscordMember GetMemberByUsername(string username, bool caseSensitive = false)
         {
