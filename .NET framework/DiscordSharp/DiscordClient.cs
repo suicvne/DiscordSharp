@@ -14,6 +14,7 @@ using DiscordSharp.Objects;
 
 using ID = System.String;
 using DiscordSharp.Sockets;
+using System.Diagnostics;
 
 namespace DiscordSharp
 {
@@ -2182,17 +2183,19 @@ namespace DiscordSharp
             if (!message["d"]["members"].IsNullOrEmpty())
             {
                 DiscordServer inServer = ServersList.Find(x => x.ID == message["d"]["guild_id"].ToString());
-                JArray membersAsArray = JArray.Parse(message["d"]["members"].ToString());
-                foreach (var member in membersAsArray)
+                JArray membersAsArray = (JArray)message["d"]["members"];
+
+                Parallel.ForEach(membersAsArray, member =>
                 {
                     DiscordMember existingMember = inServer.GetMemberByKey((string)member["user"]["id"]);
 
                     if (existingMember == null)
                     {
                         existingMember = JsonConvert.DeserializeObject<DiscordMember>(member["user"].ToString());
+
                         if (!member["roles"].IsNullOrEmpty())
                         {
-                            JArray rollsArray = JArray.Parse(member["roles"].ToString());
+                            JArray rollsArray = (JArray)member["roles"];
                             if (rollsArray.Count > 0)
                             {
                                 foreach (var rollID in rollsArray)
@@ -2221,7 +2224,8 @@ namespace DiscordSharp
                         DebugLogger.Log("Found user for private channel!", MessageLevel.Debug);
                         _channel.Recipient = existingMember;
                     }
-                }
+                });
+                Debug.WriteLine("Loaded Member size: " + membersAsArray.Count + " Total size: " + inServer.Members.Count);
             }
         }
 
