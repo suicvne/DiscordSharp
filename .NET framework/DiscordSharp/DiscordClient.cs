@@ -3369,6 +3369,8 @@ namespace DiscordSharp
                             message += " Email was invalid: " + result["email"];
                         if (!result["password"].IsNullOrEmpty())
                             message += " password was invalid: " + result["password"];
+                        if (!result["captcha_key"].IsNullOrEmpty())
+                            message += " captcha required for this IP address: " + result["captcha_key"].ToString();
 
                         throw new DiscordLoginException(message);
                     }
