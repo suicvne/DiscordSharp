@@ -105,6 +105,7 @@
     <Compile Include="Events\DiscordBanRemovedEventArgs.cs" />
     <Compile Include="EpochTime.cs" />
     <Compile Include="Events\DiscordGuildBanEventArgs.cs" />
+    <Compile Include="Events\DiscordGuildMembersLoadedEventArgs.cs" />
     <Compile Include="Events\DiscordVoiceUserSpeaking.cs" />
     <Compile Include="Objects\DiscordVoiceState.cs" />
     <Compile Include="Objects\DiscordServer.cs" />

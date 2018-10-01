@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using DiscordSharp.Events;
 using System.Text.RegularExpressions;
+using System.Linq;
 using System.Drawing;
 using DiscordSharp.Objects;
 
@@ -243,6 +244,7 @@ namespace DiscordSharp
         public event EventHandler<DiscordGuildRoleUpdateEventArgs> RoleUpdated;
         public event EventHandler<DiscordGuildMemberUpdateEventArgs> GuildMemberUpdated;
         public event EventHandler<DiscordGuildBanEventArgs> GuildMemberBanned;
+        public event EventHandler<DiscordGuildMembersLoadedEventArgs> GuildMembersLoadedEventArgs;
         public event EventHandler<DiscordPrivateChannelDeleteEventArgs> PrivateChannelDeleted;
         public event EventHandler<DiscordBanRemovedEventArgs> BanRemoved;
         public event EventHandler<DiscordPrivateMessageDeletedEventArgs> PrivateMessageDeleted;
@@ -1222,14 +1224,12 @@ namespace DiscordSharp
         /// <returns></returns>
         public DiscordChannel GetChannelByName(string channelName)
         {
-            try
+            DiscordServer findServer = ServersList.Where(x => x.Channels.Find(y => y.Name.ToLower() == channelName.ToLower()) != null).FirstOrDefault();
+            if (findServer != null)
             {
-                return ServersList.Find(x => x.Channels.Find(y => y.Name.ToLower() == channelName.ToLower()) != null).Channels.Find(x => x.Name.ToLower() == channelName.ToLower());
+                return findServer.Channels.Where(x => x.Name.ToLower() == channelName.ToLower()).FirstOrDefault();
             }
-            catch
-            {
-                return null;
-            }
+            return null;
         }
 
         /// <summary>
@@ -2226,6 +2226,15 @@ namespace DiscordSharp
                     }
                 });
                 Debug.WriteLine("Loaded Member size: " + membersAsArray.Count + " Total size: " + inServer.Members.Count);
+
+                if (membersAsArray.Count != 1000) // chunks of 1000 sent at once.
+                {
+                    GuildMembersLoadedEventArgs?.Invoke(this, new DiscordGuildMembersLoadedEventArgs()
+                    {
+                        Server = inServer,
+                        MemberSize = inServer.Members.Count,
+                    });
+                }
             }
         }
 
