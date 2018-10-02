@@ -70,14 +70,14 @@ namespace DiscordSharp.Sockets
             Socket.Connect();
         }
 
-        public void Send(byte[] data)
+        public async void Send(byte[] data)
         {
-            Socket.SendMessageAsync(data);
+            await Socket.SendMessage(data);
         }
 
-        public void Send(string data)
+        public async void Send(string data)
         {
-            Socket.SendMessage(data);
+            await Socket.SendMessage(data);
         }
     }
 }
