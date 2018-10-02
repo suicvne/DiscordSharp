@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using System.Net;
 using System.IO;
-using WebSocketSharp;
 using System.Threading;
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
@@ -1899,9 +1898,7 @@ namespace DiscordSharp
         /// <summary>
         /// Runs the websocket connection for the client hooking up the appropriate events.
         /// </summary>
-        /// <param name="useDotNetWebsocket">If true, DiscordSharp will connect using the .Net Framework's built-in WebSocketClasses.
-        /// Please do not use this on Mono or versions of Windows below 8/8.1</param>
-        public void Connect(bool useDotNetWebsocket = false)
+        public void Connect()
         {
             CurrentGatewayURL = GetGatewayUrl();
             if (string.IsNullOrEmpty(CurrentGatewayURL))
@@ -1911,16 +1908,9 @@ namespace DiscordSharp
             }
             DebugLogger.Log("Gateway retrieved: " + CurrentGatewayURL);
 
-            if (useDotNetWebsocket)
-            {
-                ws = new NetWebSocket(CurrentGatewayURL);
-                DebugLogger.Log("Using the built-in .Net websocket..");
-            }
-            else
-            {
-                ws = new WebSocketSharpSocket(CurrentGatewayURL);
-                DebugLogger.Log("Using WebSocketSharp websocket..");
-            }
+            ws = new NetWebSocket(CurrentGatewayURL);
+            DebugLogger.Log("Using the built-in .Net websocket..");
+
 
             ws.MessageReceived += (sender, e) =>
             {

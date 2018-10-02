@@ -92,9 +92,6 @@
     <Reference Include="Newtonsoft.Json, Version=8.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed">
       <HintPath>..\packages\Newtonsoft.Json.8.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
-    <Reference Include="websocket-sharp, Version=1.0.2.36589, Culture=neutral, PublicKeyToken=5660b08a1845a91e">
-      <HintPath>..\packages\WebSocketSharp.1.0.3-rc9\lib\websocket-sharp.dll</HintPath>
-    </Reference>
     <Reference Include="WebSocket4Net, Version=0.14.1.0, Culture=neutral, PublicKeyToken=eb4e154b696bf72a">
       <HintPath>..\packages\WebSocket4Net.0.14.1\lib\net45\WebSocket4Net.dll</HintPath>
       <Aliases>ws4n</Aliases>
@@ -114,7 +111,6 @@
     <Compile Include="Sockets\BuiltIn\NetWebSocketWrapper.cs" />
     <Compile Include="Sockets\IDiscordWebSocket.cs" />
     <Compile Include="Sockets\NetWebSocket.cs" />
-    <Compile Include="Sockets\WebSocketSharpSocket.cs" />
     <Compile Include="Voice\DiscordAudioPacket.cs" />
     <Compile Include="Voice\DiscordVoiceClient.cs" />
     <Compile Include="Events\DiscordGuildMemberUpdateEventArgs.cs" />

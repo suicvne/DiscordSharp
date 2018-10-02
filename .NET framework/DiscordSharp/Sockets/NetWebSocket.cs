@@ -72,7 +72,7 @@ namespace DiscordSharp.Sockets
 
         public void Send(byte[] data)
         {
-            throw new NotImplementedException();
+            Socket.SendMessageAsync(data);
         }
 
         public void Send(string data)
