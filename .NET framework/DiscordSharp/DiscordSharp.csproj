@@ -17,7 +17,7 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
+    <Optimize>true</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
     <!--<CustomConstants Condition=" '$(TargetFrameworkVersion' == 'v3.5'">V35</CustomConstants>
     <CustomConstants Condition=" '$(TargetFrameworkVersion' == 'v4.5'">V45</CustomConstants>
@@ -110,7 +110,6 @@
     <Compile Include="Opcodes.cs" />
     <Compile Include="Sockets\BuiltIn\NetWebSocketWrapper.cs" />
     <Compile Include="Sockets\IDiscordWebSocket.cs" />
-    <Compile Include="Sockets\NetWebSocket.cs" />
     <Compile Include="Voice\DiscordAudioPacket.cs" />
     <Compile Include="Voice\DiscordVoiceClient.cs" />
     <Compile Include="Events\DiscordGuildMemberUpdateEventArgs.cs" />

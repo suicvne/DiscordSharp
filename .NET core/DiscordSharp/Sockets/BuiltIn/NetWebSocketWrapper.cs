@@ -13,23 +13,26 @@ namespace DiscordSharp.Sockets.BuiltIn
     {
         private const int ReceiveChunkSize = 4096;
 
+        private string _URL;
+        public string URL
+        {
+            get;
+            private set;
+        }
+
         private readonly ClientWebSocket _ws;
         private readonly Uri _uri;
         private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         private readonly CancellationToken _cancellationToken;
 
-        private Action<NetWebSocketWrapper> _onConnected;
-        private Action<string, NetWebSocketWrapper> _onMessage;
-
         /// <summary>
-        /// CloseStatus.Value.ToString()
-        /// CloseStatusDescription
-        /// Socket
+        /// Create an instance
         /// </summary>
-        private Action<int, string, NetWebSocketWrapper> _onDisconnected;
-
-        protected NetWebSocketWrapper(string uri)
+        /// <param name="uri"></param>
+        public NetWebSocketWrapper(string uri)
         {
+            this._URL = uri;
+
             _ws = new ClientWebSocket();
             _ws.Options.KeepAliveInterval = TimeSpan.FromSeconds(20);
             _uri = new Uri(uri);
@@ -39,14 +42,18 @@ namespace DiscordSharp.Sockets.BuiltIn
             //_ws.CloseStatus.Value.ToString();
         }
 
-        /// <summary>
-        /// Creates a new instance.
-        /// </summary>
-        /// <param name="uri">The URI of the WebSocket server.</param>
-        /// <returns></returns>
-        public static NetWebSocketWrapper Create(string uri)
+        #region Public methods
+        public event EventHandler<SocketMessageEventArgs> MessageReceived;
+        public event EventHandler<SocketClosedEventArgs> SocketClosed;
+        public event EventHandler<SocketErrorEventArgs> SocketError;
+        public event EventHandler<EventArgs> SocketOpened;
+
+        public bool IsAlive
         {
-            return new NetWebSocketWrapper(uri);
+            get
+            {
+                return _ws != null;
+            }
         }
 
         /// <summary>
@@ -56,39 +63,6 @@ namespace DiscordSharp.Sockets.BuiltIn
         public NetWebSocketWrapper Connect()
         {
             ConnectAsync();
-            return this;
-        }
-
-        /// <summary>
-        /// Set the Action to call when the connection has been established.
-        /// </summary>
-        /// <param name="onConnect">The Action to call.</param>
-        /// <returns></returns>
-        public NetWebSocketWrapper OnConnect(Action<NetWebSocketWrapper> onConnect)
-        {
-            _onConnected = onConnect;
-            return this;
-        }
-
-        /// <summary>
-        /// Set the Action to call when the connection has been terminated.
-        /// </summary>
-        /// <param name="onDisconnect">The Action to call</param>
-        /// <returns></returns>
-        public NetWebSocketWrapper OnDisconnect(Action<int, string, NetWebSocketWrapper> onDisconnect)
-        {
-            _onDisconnected = onDisconnect;
-            return this;
-        }
-
-        /// <summary>
-        /// Set the Action to call when a messages has been received.
-        /// </summary>
-        /// <param name="onMessage">The Action to call.</param>
-        /// <returns></returns>
-        public NetWebSocketWrapper OnMessage(Action<string, NetWebSocketWrapper> onMessage)
-        {
-            _onMessage = onMessage;
             return this;
         }
 
@@ -133,6 +107,8 @@ namespace DiscordSharp.Sockets.BuiltIn
             }
             return false;
         }
+        #endregion
+
 
         private void ConnectAsync()
         {
@@ -180,7 +156,11 @@ namespace DiscordSharp.Sockets.BuiltIn
                         // Fires the return packet in a new thread
                         ThreadPool.QueueUserWorkItem(state =>
                         {
-                            _onMessage?.Invoke(msg, this);
+                            SocketMessageEventArgs args = new SocketMessageEventArgs
+                            {
+                                Message = msg
+                            };
+                            MessageReceived?.Invoke(this, args);
                         });
                     }
                 }
@@ -204,14 +184,18 @@ namespace DiscordSharp.Sockets.BuiltIn
             }
             catch { }
 
-            _onDisconnected?.Invoke(_ws.CloseStatus != null ? (int)_ws.CloseStatus.Value : -1,
-                messageOverride != null ? messageOverride : _ws.CloseStatusDescription,
-            this);
+            SocketClosedEventArgs args = new SocketClosedEventArgs
+            {
+                Reason = messageOverride != null ? messageOverride : _ws.CloseStatusDescription,
+                WasClean = false,
+                Code = _ws.CloseStatus != null ? (int)_ws.CloseStatus.Value : -1
+            };
+            SocketClosed?.Invoke(this, args);
         }
 
         private void CallOnConnected()
         {
-            _onConnected?.Invoke(this);
+            SocketOpened?.Invoke(this, null);
         }
     }
 }

@@ -7,14 +7,13 @@ using System.Threading;
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using DiscordSharp.Events;
-using System.Text.RegularExpressions;
-using System.Linq;
 using System.Drawing;
+using System.Linq;
 using DiscordSharp.Objects;
-
-using ID = System.String;
 using DiscordSharp.Sockets;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using DiscordSharp.Sockets.BuiltIn;
 
 namespace DiscordSharp
 {
@@ -170,11 +169,10 @@ namespace DiscordSharp
         public bool Autoconnect { get; set; } = true;
 
 
-        private IDiscordWebSocket ws;
+        private NetWebSocketWrapper ws;
         private List<DiscordServer> ServersList { get; set; }
         private string CurrentGameName = "";
         private int? IdleSinceUnixTime = null;
-        static string UserAgentString = $" (http://github.com/Luigifan/DiscordSharp, {typeof(DiscordClient).Assembly.GetName().Version.ToString()})";
         private DiscordVoiceClient VoiceClient;
         private Logger DebugLogger = new Logger();
         private CancellationTokenSource KeepAliveTaskTokenSource = new CancellationTokenSource();
@@ -204,7 +202,7 @@ namespace DiscordSharp
         /// A log of messages kept in a KeyValuePair.
         /// The key is the id of the message, and the value is a DiscordMessage object. If you need raw json, this is contained inside of the DiscordMessage object now.
         /// </summary>
-        private Dictionary<ID, DiscordMessage> MessageLog = new Dictionary<string, DiscordMessage>();
+        private Dictionary<String, DiscordMessage> MessageLog = new Dictionary<string, DiscordMessage>();
         //private List<KeyValuePair<string, DiscordMessage>> MessageLog = new List<KeyValuePair<string, DiscordMessage>>();
         private List<DiscordPrivateChannel> PrivateChannels = new List<DiscordPrivateChannel>();
 
@@ -286,11 +284,6 @@ namespace DiscordSharp
             token = tokenOverride;
             IsBotAccount = isBotAccount;
 
-            if (IsBotAccount)
-                UserAgentString = "DiscordBot " + UserAgentString;
-            else
-                UserAgentString = "Custom Discord Client " + UserAgentString;
-
             if (ClientPrivateInformation == null)
                 ClientPrivateInformation = new DiscordUserInformation();
 
@@ -298,8 +291,7 @@ namespace DiscordSharp
             {
                 if (e.message.Level == MessageLevel.Error)
                     DisconnectFromVoice();
-                if (TextClientDebugMessageReceived != null)
-                    TextClientDebugMessageReceived(this, e);
+                TextClientDebugMessageReceived?.Invoke(this, e);
             };
         }
 
@@ -313,7 +305,7 @@ namespace DiscordSharp
         /// Any messages logged since connection to the websocket.
         /// </summary>
         /// <returns>A KeyValuePair list of string-DiscordMessage. Where string is the message's ID</returns>
-        public Dictionary<ID, DiscordMessage> GetMessageLog() => MessageLog;
+        public Dictionary<String, DiscordMessage> GetMessageLog() => MessageLog;
 
         /// <summary>
         /// Private channels assosciated with the account.
@@ -903,7 +895,7 @@ namespace DiscordSharp
         /// <param name="gameName">The game's name. Old gameid lookup can be seen at: http://hastebin.com/azijiyaboc.json/ </param>
         /// <param name="streaming">Whether or not you want your bot to appear as if it is streaming. True means it will show it's streaming.</param>
         /// <param name="url">The 'url' for the stream, if your bot is streaming.</param>
-        public void UpdateCurrentGame(string gameName, bool streaming, string url = null)
+        public async void UpdateCurrentGame(string gameName, bool streaming, string url = null)
         {
             string msg;
             if (gameName.ToLower().Trim() != "")
@@ -940,14 +932,14 @@ namespace DiscordSharp
                     });
                 DebugLogger.Log("Setting current game to null.");
             }
-            ws.Send(msg.ToString());
+            await ws.SendMessage(msg.ToString());
         }
 
         /// <summary>
         /// Updates the bot's status.
         /// </summary>
         /// <param name="idle">True if you want the bot to report as idle.</param>
-        public void UpdateBotStatus(bool idle)
+        public async void UpdateBotStatus(bool idle)
         {
             string msg;
             msg = JsonConvert.SerializeObject(
@@ -960,7 +952,7 @@ namespace DiscordSharp
                         game = CurrentGameName.ToLower().Trim() == "" ? (object)null : new { name = CurrentGameName }
                     }
                 });
-            ws.Send(msg.ToString()); //let's try it!
+            await ws.SendMessage(msg.ToString()); //let's try it!
         }
 
         private void PresenceUpdateEvents(JObject message)
@@ -1370,10 +1362,7 @@ namespace DiscordSharp
         private void SendDeleteRequest(DiscordMessage message)
         {
             string url;
-            //if(!user)
             url = Endpoints.BaseAPI + Endpoints.Channels + $"/{message.channel.ID}" + Endpoints.Messages + $"/{message.ID}";
-            //else
-            //url = Endpoints.BaseAPI + Endpoints.Channels + $"/{message.channel.id}" + Endpoints.Messages + $"/{message.id}";
             try
             {
                 var result = WebWrapper.Delete(url, token);
@@ -1384,7 +1373,7 @@ namespace DiscordSharp
             }
         }
 
-        private DiscordMessage FindInMessageLog(ID id)
+        private DiscordMessage FindInMessageLog(String id)
         {
             foreach (var message in MessageLog)
                 if (message.Key == id)
@@ -1511,7 +1500,6 @@ namespace DiscordSharp
                         tempMember.parentclient = this;
                         dpmea.RawJson = message;
 
-
                         PrivateMessageReceived?.Invoke(this, dpmea);
                     }
                     else
@@ -1591,6 +1579,24 @@ namespace DiscordSharp
 
         private void ChannelCreateEvents(JObject message)
         {
+            /*{{
+  "t": "CHANNEL_CREATE",
+  "s": 97,
+  "op": 0,
+  "d": {
+    "type": 1,
+    "recipients": [
+      {
+        "username": "",
+        "id": "",
+        "discriminator": "8031",
+        "avatar": ""
+      }
+    ],
+    "last_message_id": null,
+    "id": "496435723788877835"
+  }
+}}*/
             if (message["d"]["is_private"].ToString().ToLower() == "false")
             {
                 var foundServer = ServersList.Find(x => x.ID == message["d"]["guild_id"].ToString());
@@ -1606,11 +1612,12 @@ namespace DiscordSharp
                     tempChannel.ID = message["d"]["id"].ToString();
                     tempChannel.Parent = foundServer;
                     foundServer.Channels.Add(tempChannel);
+
                     DiscordChannelCreateEventArgs fae = new DiscordChannelCreateEventArgs();
                     fae.ChannelCreated = tempChannel;
                     fae.ChannelType = DiscordChannelCreateType.CHANNEL;
-                    if (ChannelCreated != null)
-                        ChannelCreated(this, fae);
+
+                    ChannelCreated?.Invoke(this, fae);
                 }
             }
             else
@@ -1621,9 +1628,14 @@ namespace DiscordSharp
                 DiscordMember recipient = ServersList.Find(x => x.GetMemberByKey(message["d"]["recipient"]["id"].ToString()) != null).GetMemberByKey(message["d"]["recipient"]["id"].ToString());
                 tempPrivate.Recipient = recipient;
                 PrivateChannels.Add(tempPrivate);
-                DiscordPrivateChannelEventArgs fak = new DiscordPrivateChannelEventArgs { ChannelType = DiscordChannelCreateType.PRIVATE, ChannelCreated = tempPrivate };
-                if (PrivateChannelCreated != null)
-                    PrivateChannelCreated(this, fak);
+
+                DiscordPrivateChannelEventArgs fak = new DiscordPrivateChannelEventArgs
+                {
+                    ChannelType = DiscordChannelCreateType.PRIVATE,
+                    ChannelCreated = tempPrivate
+                };
+
+                PrivateChannelCreated?.Invoke(this, fak);
             }
         }
         #endregion
@@ -1898,6 +1910,8 @@ namespace DiscordSharp
         /// <summary>
         /// Runs the websocket connection for the client hooking up the appropriate events.
         /// </summary>
+        /// <param name="useDotNetWebsocket">If true, DiscordSharp will connect using the .Net Framework's built-in WebSocketClasses.
+        /// Please do not use this on Mono or versions of Windows below 8/8.1</param>
         public void Connect()
         {
             CurrentGatewayURL = GetGatewayUrl();
@@ -1908,7 +1922,7 @@ namespace DiscordSharp
             }
             DebugLogger.Log("Gateway retrieved: " + CurrentGatewayURL);
 
-            ws = new NetWebSocket(CurrentGatewayURL);
+            ws = new NetWebSocketWrapper(CurrentGatewayURL);
             DebugLogger.Log("Using the built-in .Net websocket..");
 
             ws.MessageReceived += (sender, e) =>
@@ -1921,6 +1935,7 @@ namespace DiscordSharp
                 catch (Exception ex)
                 {
                     DebugLogger.Log($"MessageReceived Error: {ex.Message}\n\n```{e.Message}\n```\n", MessageLevel.Error);
+                    return;
                 }
                 if (EnableVerboseLogging)
                     if (message["t"].ToString() != "READY")
@@ -1957,6 +1972,7 @@ namespace DiscordSharp
             DebugLogger.Log("Connecting..");
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void MiscellaneousOpcodes(JObject message)
         {
             switch (message["op"].ToObject<int>())
@@ -1982,145 +1998,152 @@ namespace DiscordSharp
             });
         }
 
-        private void ClientPacketReceived(JObject message)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private async void ClientPacketReceived(JObject message)
         {
-            switch (message["t"].ToString())
+            string header = message["t"].ToString();
+
+            Debug.WriteLine(string.Format("[DiscordClient] Received {0} HEADER.", header));
+
+            switch (header)
             {
-                case ("READY"):
-                    Sequence = message["s"].ToObject<int>();
-                    DiscordGatewayVersion = message["d"]["v"].ToObject<int>();
-                    if (message["d"]?["heartbeat_interval"] != null)
-                        HeartbeatInterval = message["d"]["heartbeat_interval"].ToObject<int>();
-                    BeginHeartbeatTask();
-
-                    if (WriteLatestReady)
+                case "READY":
                     {
-                        using (var sw = new StreamWriter("READY_LATEST.txt"))
+                        Sequence = message["s"].ToObject<int>();
+                        DiscordGatewayVersion = message["d"]["v"].ToObject<int>();
+                        if (message["d"]?["heartbeat_interval"] != null)
+                            HeartbeatInterval = message["d"]["heartbeat_interval"].ToObject<int>();
+                        BeginHeartbeatTask();
+
+                        if (WriteLatestReady)
                         {
-                            sw.Write(message);
-                        }
-                    }
-
-                    Me = JsonConvert.DeserializeObject<DiscordMember>(message["d"]["user"].ToString());
-                    Me.parentclient = this;
-                    IsBotAccount = message["d"]["user"]["bot"].IsNullOrEmpty() ? false : message["d"]["user"]["bot"].ToObject<bool>();
-                    ClientPrivateInformation.Avatar = Me.Avatar;
-                    ClientPrivateInformation.Username = Me.Username;
-                    GetChannelsList(message);
-                    SessionID = message["d"]["session_id"].ToString();
-
-                    //TESTING
-                    string[] guildID = new string[ServersList.Count];
-                    for (int i = 0; i < guildID.Length; i++)
-                        guildID[i] = ServersList[i].ID;
-
-                    if (RequestAllUsersOnStartup)
-                    {
-                        string wsChunkTest = JsonConvert.SerializeObject(new
-                        {
-                            op = 8,
-                            d = new
+                            using (var sw = new StreamWriter("READY_LATEST.txt"))
                             {
-                                guild_id = guildID,
-                                query = "",
-                                limit = 0
+                                sw.Write(message);
                             }
-                        });
-                        ws.Send(wsChunkTest);
+                        }
 
-                        //ws.Send(@"{""op"":4,""d"":{ ""guild_id"":null,""channel_id"":null,""self_mute"":true,""self_deaf"":false,""self_video"":false}}");
+                        Me = JsonConvert.DeserializeObject<DiscordMember>(message["d"]["user"].ToString());
+                        Me.parentclient = this;
+                        IsBotAccount = message["d"]["user"]["bot"].IsNullOrEmpty() ? false : message["d"]["user"]["bot"].ToObject<bool>();
+                        ClientPrivateInformation.Avatar = Me.Avatar;
+                        ClientPrivateInformation.Username = Me.Username;
+                        GetChannelsList(message);
+                        SessionID = message["d"]["session_id"].ToString();
+
+                        //TESTING
+                        string[] guildID = new string[ServersList.Count];
+                        for (int i = 0; i < guildID.Length; i++)
+                            guildID[i] = ServersList[i].ID;
+
+                        if (RequestAllUsersOnStartup)
+                        {
+                            string wsChunkTest = JsonConvert.SerializeObject(new
+                            {
+                                op = 8,
+                                d = new
+                                {
+                                    guild_id = guildID,
+                                    query = "",
+                                    limit = 0
+                                }
+                            });
+                            await ws.SendMessage(wsChunkTest);
+
+                            //ws.Send(@"{""op"":4,""d"":{ ""guild_id"":null,""channel_id"":null,""self_mute"":true,""self_deaf"":false,""self_video"":false}}");
+                        }
+
+                        ReadyComplete = true;
+
+                        Task.Run(() =>
+                        {
+                            Task.Delay(3000);
+                            Connected?.Invoke(this, new DiscordConnectEventArgs { User = Me });
+                        }); //fire and forget waiting of up to 3 seconds for guilds to become available.
+                        break;
                     }
-
-                    ReadyComplete = true;
-
-                    Task.Run(() =>
-                    {
-                        Task.Delay(3000);
-                        Connected?.Invoke(this, new DiscordConnectEventArgs { User = Me });
-                    }); //fire and forget waiting of up to 3 seconds for guilds to become available.
-                    break;
-                case ("GUILD_MEMBERS_CHUNK"):
+                case "GUILD_MEMBERS_CHUNK":
                     GuildMemberChunkEvents(message);
                     break;
-                case ("GUILD_MEMBER_REMOVE"):
+                case "GUILD_MEMBER_REMOVE":
                     GuildMemberRemoveEvents(message);
                     break;
-                case ("GUILD_MEMBER_ADD"):
+                case "GUILD_MEMBER_ADD":
                     GuildMemberAddEvents(message);
                     break;
-                case ("GUILD_DELETE"):
+                case "GUILD_DELETE":
                     GuildDeleteEvents(message);
                     break;
-                case ("GUILD_CREATE"):
+                case "GUILD_CREATE":
                     GuildCreateEvents(message);
                     break;
-                case ("GUILD_MEMBER_UPDATE"):
+                case "GUILD_MEMBER_UPDATE":
                     GuildMemberUpdateEvents(message);
                     break;
-                case ("GUILD_UPDATE"):
+                case "GUILD_UPDATE":
                     GuildUpdateEvents(message);
                     break;
-                case ("GUILD_ROLE_DELETE"):
+                case "GUILD_ROLE_DELETE":
                     GuildRoleDeleteEvents(message);
                     break;
-                case ("GUILD_ROLE_UPDATE"):
+                case "GUILD_ROLE_UPDATE":
                     GuildRoleUpdateEvents(message);
                     break;
-                case ("PRESENCE_UPDATE"):
+                case "PRESENCE_UPDATE":
                     PresenceUpdateEvents(message);
                     break;
-                case ("MESSAGE_UPDATE"):
+                case "MESSAGE_UPDATE":
                     MessageUpdateEvents(message);
                     break;
-                case ("TYPING_START"):
+                case "TYPING_START":
                     DiscordServer server = ServersList.Find(x => x.Channels.Find(y => y.ID == message["d"]["channel_id"].ToString()) != null);
                     if (server != null)
                     {
                         DiscordChannel channel = server.Channels.Find(x => x.ID == message["d"]["channel_id"].ToString());
                         DiscordMember uuser = server.GetMemberByKey(message["d"]["user_id"].ToString());
-                        if (UserTypingStart != null)
-                            UserTypingStart(this, new DiscordTypingStartEventArgs { user = uuser, Channel = channel, Timestamp = int.Parse(message["d"]["timestamp"].ToString()) });
+                        UserTypingStart?.Invoke(this, new DiscordTypingStartEventArgs { user = uuser, Channel = channel, Timestamp = int.Parse(message["d"]["timestamp"].ToString()) });
                     }
                     break;
-                case ("MESSAGE_CREATE"):
+                case "MESSAGE_CREATE":
                     MessageCreateEvents(message);
                     break;
-                case ("CHANNEL_CREATE"):
+                case "CHANNEL_CREATE":
                     ChannelCreateEvents(message);
                     break;
-                case ("VOICE_STATE_UPDATE"):
+                case "VOICE_STATE_UPDATE":
                     VoiceStateUpdateEvents(message);
                     break;
-                case ("VOICE_SERVER_UPDATE"):
+                case "VOICE_SERVER_UPDATE":
                     VoiceServerUpdateEvents(message);
                     break;
-                case ("MESSAGE_DELETE"):
+                case "MESSAGE_DELETE":
                     MessageDeletedEvents(message);
                     break;
-                case ("USER_UPDATE"):
+                case "USER_UPDATE":
                     UserUpdateEvents(message);
                     break;
-                case ("CHANNEL_UPDATE"):
+                case "CHANNEL_UPDATE":
                     ChannelUpdateEvents(message);
                     break;
-                case ("CHANNEL_DELETE"):
+                case "CHANNEL_DELETE":
                     ChannelDeleteEvents(message);
                     break;
-                case ("GUILD_BAN_ADD"):
+                case "GUILD_BAN_ADD":
                     GuildMemberBannedEvents(message);
                     break;
-                case ("GUILD_BAN_REMOVE"):
+                case "GUILD_BAN_REMOVE":
                     GuildMemberBanRemovedEvents(message);
                     break;
-                case ("MESSAGE_ACK"): //ignore this message, it's irrelevant
+                case "MESSAGE_ACK": //ignore this message, it's irrelevant
                     break;
+                case "SESSIONS_REPLACE": // idk
                 default:
                     UnknownMessageTypeReceived?.Invoke(this, new UnknownMessageEventArgs { RawJson = message });
                     break;
             }
         }
 
-        private void SendIdentifyPacket()
+        private async void SendIdentifyPacket()
         {
             string initJson = JsonConvert.SerializeObject(new
             {
@@ -2147,7 +2170,7 @@ namespace DiscordSharp
 
             DebugLogger.Log("Sending initJson ( " + initJson + " )");
 
-            ws.Send(initJson);
+            await ws.SendMessage(initJson);
         }
 
         private void BeginHeartbeatTask()
@@ -2214,7 +2237,7 @@ namespace DiscordSharp
                         _channel.Recipient = existingMember;
                     }
                 });
-                Debug.WriteLine("Loaded Member size: " + membersAsArray.Count + " Total size: " + inServer.Members.Count);
+                // Debug.WriteLine("Loaded Member size: " + membersAsArray.Count + " Total size: " + inServer.Members.Count);
 
                 if (membersAsArray.Count != 1000) // chunks of 1000 sent at once.
                 {
@@ -2234,8 +2257,7 @@ namespace DiscordSharp
             e.Guild = ServersList.Find(x => x.ID == message["d"]["guild_id"].ToString());
             e.MemberStub = JsonConvert.DeserializeObject<DiscordMember>(message["d"]["user"].ToString());
 
-            if (BanRemoved != null)
-                BanRemoved(this, e);
+            BanRemoved?.Invoke(this, e);
         }
 
         private void GuildMemberBannedEvents(JObject message)
@@ -2257,8 +2279,7 @@ namespace DiscordSharp
                     e.MemberBanned = RemovedMembers.Find(x => x.ID == message["d"]["user"]["id"].ToString());
                     if (e.MemberBanned != null)
                     {
-                        if (GuildMemberBanned != null)
-                            GuildMemberBanned(this, e);
+                        GuildMemberBanned?.Invoke(this, e);
                     }
                     else
                     {
@@ -2287,14 +2308,12 @@ namespace DiscordSharp
 
             VoiceClient.PacketReceived += (sender, e) =>
             {
-                if (AudioPacketReceived != null)
-                    AudioPacketReceived(sender, e);
+                AudioPacketReceived?.Invoke(sender, e);
             };
 
             VoiceClient.DebugMessageReceived += (sender, e) =>
             {
-                if (VoiceClientDebugMessageReceived != null)
-                    VoiceClientDebugMessageReceived(this, e);
+                VoiceClientDebugMessageReceived?.Invoke(this, e);
             };
 
             ConnectToVoiceAsync();
@@ -2474,7 +2493,7 @@ namespace DiscordSharp
         /// <param name="voiceConfig">The voice configuration to use. If null, default values will be used.</param>
         /// <param name="clientMuted">Whether or not the client will connect muted. Defaults to false.</param>
         /// <param name="clientDeaf">Whether or not the client will connect deaf. Defaults to false.</param>
-        public void ConnectToVoiceChannel(DiscordChannel channel, DiscordVoiceConfig voiceConfig = null, bool clientMuted = false, bool clientDeaf = false)
+        public async void ConnectToVoiceChannel(DiscordChannel channel, DiscordVoiceConfig voiceConfig = null, bool clientMuted = false, bool clientDeaf = false)
         {
             if (channel.Type != ChannelType.Voice)
                 throw new InvalidOperationException($"Channel '{channel.ID}' is not a voice channel!");
@@ -2527,7 +2546,7 @@ namespace DiscordSharp
                 }
             });
 
-            ws.Send(joinVoicePayload);
+            await ws.SendMessage(joinVoicePayload);
         }
 
         /// <summary>
@@ -2554,7 +2573,7 @@ namespace DiscordSharp
         /// <summary>
         /// Also disposes
         /// </summary>
-        public void DisconnectFromVoice()
+        public async void DisconnectFromVoice()
         {
             string disconnectMessage = JsonConvert.SerializeObject(new
             {
@@ -2575,13 +2594,15 @@ namespace DiscordSharp
                     VoiceClient = null;
 
 
-                    ws.Send(disconnectMessage);
+                    await ws.SendMessage(disconnectMessage);
                 }
                 catch
                 { }
             }
             if (ws != null)
-                ws.Send(disconnectMessage);
+            {
+                await ws.SendMessage(disconnectMessage);
+            }
             VoiceClient = null;
             if (VoiceThread != null)
                 VoiceThread.Abort();
@@ -2974,7 +2995,7 @@ namespace DiscordSharp
             server.parentclient = this;
             server.ID = message["d"]["id"].ToString();
             server.Name = message["d"]["name"].ToString();
-            server.Members = new Dictionary<ID, DiscordMember>();
+            server.Members = new Dictionary<String, DiscordMember>();
             server.Channels = new List<DiscordChannel>();
             server.Roles = new List<DiscordRole>();
             foreach (var roll in message["d"]["roles"])
@@ -3278,7 +3299,7 @@ namespace DiscordSharp
 
         private int HeartbeatInterval = 41250;
         private static DateTime epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-        private void KeepAlive()
+        private async void KeepAlive()
         {
             //string keepAliveJson = "{\"op\":" + Opcodes.HEARTBEAT + ", \"d\":" + Sequence + "}";
             string keepAliveJson = JsonConvert.SerializeObject(new
@@ -3288,7 +3309,7 @@ namespace DiscordSharp
             });
             if (ws != null)
             {
-                ws.Send(keepAliveJson);
+                await ws.SendMessage(keepAliveJson);
                 KeepAliveSent?.Invoke(this, new DiscordKeepAliveSentEventArgs { SentAt = DateTime.Now, JsonSent = keepAliveJson });
             }
         }
