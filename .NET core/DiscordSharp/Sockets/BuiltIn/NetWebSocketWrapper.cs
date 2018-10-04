@@ -16,8 +16,8 @@ namespace DiscordSharp.Sockets.BuiltIn
         private string _URL;
         public string URL
         {
-            get;
-            private set;
+            get { return _URL; }
+            private set { }
         }
 
         private readonly ClientWebSocket _ws;
@@ -59,11 +59,14 @@ namespace DiscordSharp.Sockets.BuiltIn
         /// <summary>
         /// Connects to the WebSocket server.
         /// </summary>
-        /// <returns></returns>
-        public NetWebSocketWrapper Connect()
+        public void Connect()
         {
-            ConnectAsync();
-            return this;
+            //await _ws.ConnectAsync(_uri, _cancellationToken);
+            _ws.ConnectAsync(_uri, _cancellationToken).Wait();
+
+            SocketOpened?.Invoke(this, null);
+
+            StartListen();
         }
 
         /// <summary>
@@ -109,19 +112,8 @@ namespace DiscordSharp.Sockets.BuiltIn
         }
         #endregion
 
-
-        private void ConnectAsync()
-        {
-            //await _ws.ConnectAsync(_uri, _cancellationToken);
-            _ws.ConnectAsync(_uri, _cancellationToken).Wait();
-            CallOnConnected();
-            StartListen();
-        }
-
         private async void StartListen()
         {
-            var buffer = new byte[ReceiveChunkSize];
-
             try
             {
                 while (_ws != null && _ws.State == WebSocketState.Open)
@@ -191,11 +183,6 @@ namespace DiscordSharp.Sockets.BuiltIn
                 Code = _ws.CloseStatus != null ? (int)_ws.CloseStatus.Value : -1
             };
             SocketClosed?.Invoke(this, args);
-        }
-
-        private void CallOnConnected()
-        {
-            SocketOpened?.Invoke(this, null);
         }
     }
 }

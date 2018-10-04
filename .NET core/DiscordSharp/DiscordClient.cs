@@ -1923,32 +1923,30 @@ namespace DiscordSharp
             DebugLogger.Log("Gateway retrieved: " + CurrentGatewayURL);
 
             ws = new NetWebSocketWrapper(CurrentGatewayURL);
-            DebugLogger.Log("Using the built-in .Net websocket..");
 
             ws.MessageReceived += (sender, e) =>
             {
-                var message = new JObject();
                 try
                 {
-                    message = JObject.Parse(e.Message);
+                    var message = JObject.Parse(e.Message);
+
+                    if (EnableVerboseLogging)
+                        if (message["t"].ToString() != "READY")
+                            DebugLogger.Log(message.ToString(), MessageLevel.Unecessary);
+
+                    if (!message["t"].IsNullOrEmpty()) //contains a t parameter used for client events.
+                        ClientPacketReceived(message);
+                    else
+                        MiscellaneousOpcodes(message);
+
+                    if (!message["s"].IsNullOrEmpty())
+                        Sequence = message["s"].ToObject<int>();
                 }
                 catch (Exception ex)
                 {
                     DebugLogger.Log($"MessageReceived Error: {ex.Message}\n\n```{e.Message}\n```\n", MessageLevel.Error);
                     return;
                 }
-                if (EnableVerboseLogging)
-                    if (message["t"].ToString() != "READY")
-                        DebugLogger.Log(message.ToString(), MessageLevel.Unecessary);
-
-                if (!message["t"].IsNullOrEmpty()) //contains a t parameter used for client events.
-                    ClientPacketReceived(message);
-                else
-                    MiscellaneousOpcodes(message);
-
-                if (!message["s"].IsNullOrEmpty())
-                    Sequence = message["s"].ToObject<int>();
-
             };
             ws.SocketOpened += (sender, e) =>
             {
@@ -2055,7 +2053,7 @@ namespace DiscordSharp
 
                         ReadyComplete = true;
 
-                        Task.Run(() =>
+                        await Task.Run(() =>
                         {
                             Task.Delay(3000);
                             Connected?.Invoke(this, new DiscordConnectEventArgs { User = Me });
@@ -2199,6 +2197,8 @@ namespace DiscordSharp
 
                 Parallel.ForEach(membersAsArray, member =>
                 {
+                    string memberId = (string)member["user"]["id"];
+
                     DiscordMember existingMember = inServer.GetMemberByKey((string)member["user"]["id"]);
 
                     if (existingMember == null)
@@ -3168,6 +3168,7 @@ namespace DiscordSharp
             //Update members
             foreach (var server in ServersList)
             {
+
                 foreach (var member in server.Members)
                 {
                     if (member.Value.ID == newMember.ID)

@@ -79,33 +79,34 @@ namespace DiscordSharp.Objects
             Members = new Dictionary<ID, DiscordMember>();
         }
 
-        
+
         internal void AddMember(DiscordMember member)
         {
             if (member == null)
                 return;
-            if(Members.ContainsKey(member.ID)) //then replace
+
+            lock (Members)
             {
-                Members.Remove(member.ID);
+                if (Members.ContainsKey(member.ID)) //then replace
+                    Members.Remove(member.ID);
+
+                Members.Add(member.ID, member);
             }
-            Members.Add(member.ID, member);
         }
 
         internal int ClearOfflineMembers()
         {
-            int count = 0;
-            foreach(var member in Members)
-            {
-                if (member.Value.Status == Status.Offline)
-                    return count;
-            }
-            return count;
+            return Members.Count(mem => mem.Value.Status == Status.Offline);
         }
         internal bool RemoveMember(ID key)
         {
-            if(Members.ContainsKey(key))
+            if (Members.ContainsKey(key))
             {
-                Members.Remove(key);
+                lock (Members)
+                {
+                    Members.Remove(key);
+                }
+                return true;
             }
             return false;
         }
@@ -270,7 +271,8 @@ namespace DiscordSharp.Objects
             var result = JObject.Parse(WebWrapper.Post(url, DiscordClient.token, reqJson));
             if (result != null)
             {
-                DiscordChannel dc = new DiscordChannel {
+                DiscordChannel dc = new DiscordChannel
+                {
                     Name = result["name"].ToString(),
                     ID = result["id"].ToString(),
                     Type = result["type"].ToObject<ChannelType>(),
